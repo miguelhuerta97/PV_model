@@ -1,3 +1,15 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+# Dependency imports
+import numpy as np
+import pandas as pd 
+import tensorflow as tf
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+from sklearn.model_selection import train_test_split
+
 class FunctionPlotting:
   def __init__(self, df, SList=[100, 200, 400, 600, 800, 1000, 1100]): 
     plt.rcParams.update({
