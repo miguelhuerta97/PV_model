@@ -1,21 +1,19 @@
 class FunctionPlotting:
   def __init__(self, df, SList=[100, 200, 400, 600, 800, 1000, 1100]): 
-    plt.rcParams.update({
-      'font.size'       : 16,
-      'axes.titlesize'  : 14, 
-      'axes.labelsize'  : 20,
-      'xtick.labelsize' : 14,
-      'ytick.labelsize' : 14,
-      'figure.dpi'      : 80,
-      'figure.facecolor': 'w',
-      'figure.edgecolor': 'k',
-      'figure.figsize'  : [15,4],
-      })
     try:
       plt.rcParams.update({
-          'text.latex.preamble' : r'\usepackage{amsmath}',
-          'text.usetex'     : True
-          })
+        'font.size'       : 16,
+        'axes.titlesize'  : 14, 
+        'axes.labelsize'  : 20,
+        'xtick.labelsize' : 14,
+        'ytick.labelsize' : 14,
+        'figure.dpi'      : 80,
+        'figure.facecolor': 'w',
+        'figure.edgecolor': 'k',
+        'figure.figsize'  : [15,4],
+        'text.latex.preamble' : r'\usepackage{amsmath}',
+        'text.usetex'     : True
+        })
     except:
       pass
     self.SList, self.TList, self.eps = SList, [25, 50], 1e-18
