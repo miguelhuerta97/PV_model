@@ -99,18 +99,6 @@ class FunctionPlotting:
           ax.set_ylabel('$i_{pv}$ (A)')
         ax.plot(voltage, yData, label='Experimental curve')
         maxVal = yData.max()
-        # Neural network
-        try:
-          Rs, Gp, IL, I0, b  = tf.split(model(np.concatenate([S/1000, (T-25)/25], axis=1)), axis=1, num_or_size_splits=5)
-          Ipv_DNN = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage.reshape((voltage.shape[0], 1))).numpy() 
-          if curve=='pv':
-            yDNN =Ipv_DNN*voltage.reshape((voltage.shape[0], 1))
-          elif curve=='iv':
-            yDNN=Ipv_DNN
-          ax.plot(voltage, yDNN, label='Neural network', Linestyle='--')
-          maxVal = np.array([maxVal, np.max(yDNN)]).max()
-        except:
-          pass
         # Models      
         for m in params:
           Rs, Gp, IL, I0, b = [PVModel(params, model=m).Rs(data[:,0], data[:,1]), 
@@ -125,6 +113,18 @@ class FunctionPlotting:
             yData=Ipv
           ax.plot(data[:, 2], yData, label=params[m]['name'], Linestyle='--')
           maxVal = np.array([maxVal, np.max(yData)]).max()
+        # Neural network
+        try:
+          Rs, Gp, IL, I0, b  = tf.split(model(np.concatenate([S/1000, (T-25)/25], axis=1)), axis=1, num_or_size_splits=5)
+          Ipv_DNN = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage.reshape((voltage.shape[0], 1))).numpy() 
+          if curve=='pv':
+            yDNN =Ipv_DNN*voltage.reshape((voltage.shape[0], 1))
+          elif curve=='iv':
+            yDNN=Ipv_DNN
+          ax.plot(voltage, yDNN, label='Neural network', Linestyle='--')
+          maxVal = np.array([maxVal, np.max(yDNN)]).max()
+        except:
+          pass
         ax.grid(alpha=0.75), ax.set_ylim([0, np.ceil(maxVal*1.05)])
         ax.set_xlabel('$v_{pv}$ (V)')
         ax.set_title('S: '+str(Sx)+'(W/m$^2$) - T: '+str(Tx) +'(°C)')
@@ -151,25 +151,6 @@ class FunctionPlotting:
           yReal = current*voltage
         elif curve=='iv':
           yReal=current       
-        # Neural network
-        try:
-          Rs, Gp, IL, I0, b  = tf.split(model(np.concatenate([S/1000, (T-25)/25], axis=1)), axis=1, num_or_size_splits=5)
-          Ipv_DNN = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage.reshape((voltage.shape[0], 1))).numpy() 
-          if curve=='pv':
-            yDNN = Ipv_DNN*voltage.reshape((voltage.shape[0], 1))
-          elif curve=='iv':
-            yDNN =Ipv_DNN
-          error = np.mean(1-(yDNN/(yReal+self.eps)), 1)*100
-          error = error[np.where(np.abs(error)<outliers)] ## Quita algunos outliers 
-          ax1.boxplot(error, vert=True, positions=[positionsBox])
-          positionsBox+=1
-          labelBox.append('NN')
-          ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label='Neural network')
-          MAPEData['Neural network - '+str(contData)] = {'MAPE': np.around(self.MAPE(yReal, yDNN).numpy(),4), 
-                                                        #  'MeanPlot': np.around(error.mean(),4), # Activar cuando tenga una buena red
-                                                         'Sx':Sx, 'Tx':Tx}
-        except:
-          pass
         # Models
         for m in params:
           Rs, Gp, IL, I0, b = [PVModel(params, model=m).Rs(data[:,0], data[:,1]), 
@@ -191,6 +172,25 @@ class FunctionPlotting:
           MAPEData[params[m]['name']+' - '+str(contData)] = {'MAPE': np.around(self.MAPE(yReal, yData).numpy(),4),
                                                              'MeanPlot': np.around(error.mean(),4),
                                                              'Sx':Sx, 'Tx':Tx}
+        # Neural network
+        try:
+          Rs, Gp, IL, I0, b  = tf.split(model(np.concatenate([S/1000, (T-25)/25], axis=1)), axis=1, num_or_size_splits=5)
+          Ipv_DNN = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage.reshape((voltage.shape[0], 1))).numpy() 
+          if curve=='pv':
+            yDNN = Ipv_DNN*voltage.reshape((voltage.shape[0], 1))
+          elif curve=='iv':
+            yDNN =Ipv_DNN
+          error = np.mean(1-(yDNN/(yReal+self.eps)), 1)*100
+          error = error[np.where(np.abs(error)<outliers)] ## Quita algunos outliers 
+          ax1.boxplot(error, vert=True, positions=[positionsBox])
+          positionsBox+=1
+          labelBox.append('NN')
+          ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label='Neural network')
+          MAPEData['Neural network - '+str(contData)] = {'MAPE': np.around(self.MAPE(yReal, yDNN).numpy(),4), 
+                                                        #  'MeanPlot': np.around(error.mean(),4), # Activar cuando tenga una buena red
+                                                         'Sx':Sx, 'Tx':Tx}
+        except:
+          pass
         ax1.xaxis.tick_top()
         ax2.legend(fontsize=12, loc=1), ax1.set_xticklabels(labelBox, fontsize=12)
         ax1.set_ylabel('Prediction error (\\%)', fontsize=14)
@@ -226,6 +226,15 @@ class FunctionPlotting:
         ax1, ax2 = plt.subplot(gs[conty, 0]), plt.subplot(gs[conty, 1])
       elif contx == 1:
         ax1, ax2 = plt.subplot(gs[conty, 3]), plt.subplot(gs[conty, 4])
+      for m in params:
+        error = tf.math.reduce_mean(1-np.hsplit(yData[m]/yTest.astype('float64'), 4)[n], 1)*100
+        error = error.numpy()[np.where(np.abs(error)<outliers)] ## Quita algunos outliers 
+        ax1.boxplot(error, vert=True, positions=[positionsBox])
+        positionsBox+=1
+        labelBox.append(params[m]['label'])
+        ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label=params[m]['name'])
+        MAPEData[params[m]['name']+' - '+label] = {'MAPE':np.around(self.MAPE(yTest[:,n], yData[m][:,n]).numpy(),4),
+                                                       'MeanPlot': np.around(error.mean(),4)}
       try: 
         error = tf.math.reduce_mean(1-np.hsplit(yDNN/yTest.astype('float64'), 4)[n], 1)*100
         error = error.numpy()[np.where(np.abs(error)<outliers)] ## Quita algunos outliers 
@@ -237,15 +246,6 @@ class FunctionPlotting:
                                                'MeanPlot': np.around(error.mean(),4)}
       except:
         pass
-      for m in params:
-        error = tf.math.reduce_mean(1-np.hsplit(yData[m]/yTest.astype('float64'), 4)[n], 1)*100
-        error = error.numpy()[np.where(np.abs(error)<outliers)] ## Quita algunos outliers 
-        ax1.boxplot(error, vert=True, positions=[positionsBox])
-        positionsBox+=1
-        labelBox.append(params[m]['label'])
-        ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label=params[m]['name'])
-        MAPEData[params[m]['name']+' - '+label] = {'MAPE':np.around(self.MAPE(yTest[:,n], yData[m][:,n]).numpy(),4),
-                                                       'MeanPlot': np.around(error.mean(),4)}
       ax1.set_xticklabels(labelBox, fontsize=12), ax2.legend(fontsize=12, loc=1)
       ax1.set_ylabel('Prediction error (\\%)', fontsize=14), ax1.xaxis.tick_top()
       ax2.xaxis.set_ticklabels(np.around(plt.xticks()[0]/error.shape[0]*100, 1))
@@ -290,12 +290,12 @@ class FunctionPlotting:
           contData+=1
         else:
            ax.plot(np.zeros([yView.shape[0], 1]), label='Experimental curve')
+        for model in params:
+          ax.plot(yData[model][:, value-2], label=params[model]['name'])
         try: 
           ax.plot(yDNN[:, value-2], label='Neural network')
         except:
           pass
-        for model in params:
-          ax.plot(yData[model][:, value-2], label=params[model]['name'])
       contx+=2
       if contx//4:
         contx=0
