@@ -188,7 +188,7 @@ class FunctionPlotting:
           error = error[np.where(np.abs(error)<outliers)] ## Quita algunos outliers 
           ax1.boxplot(error, vert=True, positions=[positionsBox])
           positionsBox+=1
-          labelBox.append('M'+str(m))
+          labelBox.append(params[m]['label'])
           ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label=params[m]['name'])
           MAPEData[params[m]['name']+' - '+str(contData)] = {'MAPE': np.around(self.MAPE(yReal, yData).numpy(),4),
                                                              'MeanPlot': np.around(error.mean(),4),
@@ -244,7 +244,7 @@ class FunctionPlotting:
         error = error.numpy()[np.where(np.abs(error)<outliers)] ## Quita algunos outliers 
         ax1.boxplot(error, vert=True, positions=[positionsBox])
         positionsBox+=1
-        labelBox.append('M'+str(m))
+        labelBox.append(params[m]['label'])
         ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label=params[m]['name'])
         MAPEData[params[m]['name']+' - '+label] = {'MAPE':np.around(self.MAPE(yTest[:,n], yData[m][:,n]).numpy(),4),
                                                        'MeanPlot': np.around(error.mean(),4)}
