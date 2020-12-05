@@ -44,7 +44,7 @@ class FunctionPlotting:
             conty+=1
         ax.plot(_loss[0][:,_n], ".b", label='Training')
         ax.plot(_loss[1][:,_n], ".g", label='Validation')
-        ax.axhline(y=_lossTest[_n].numpy(), color="k", linestyle="-.",label="Test")
+        ax.axhline(y=_loss[2][_n], color="k", linestyle="-.",label="Test")
         ax.set_ylabel('Mean Absolute Error (\\%)', fontsize=14)
         ax.set_xlabel('epoch (-)', fontsize=14)
         ax.legend(fontsize=14), ax.set_title(_label)
