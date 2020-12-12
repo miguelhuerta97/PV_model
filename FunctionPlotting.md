@@ -30,13 +30,13 @@ class FunctionPlotting:
     self.MSE  = tf.keras.losses.MeanSquaredError(reduction=tf.keras.losses.Reduction.NONE)
     self.MSLE = tf.keras.losses.MeanSquaredLogarithmicError(reduction=tf.keras.losses.Reduction.NONE)
 
-  def PlotTraining(self, loss, label='Mean Absolute Error (\\%)'):
+  def PlotLoss(self, loss, label='Mean square error'):
     if len(loss[0])!=0:
       fig = plt.figure(figsize=(13, 15))
       gs = gridspec.GridSpec(4, ncols=3, width_ratios=[5, 1, 5], wspace=0.03, hspace=0.5)
       ax = fig.add_subplot(gs[0, :])
       contx, conty = 0, 1
-      for _n, _label  in enumerate(['CustomLoss', 'Imp', 'Vmp', 'Isc', 'Voc']):
+      for _n, _label  in enumerate(['CustomLoss', 'Isc', 'Imp', 'Vmp', 'Voc']):
         if _n!=0:
           ax = fig.add_subplot(gs[conty, contx])
           contx+=2
