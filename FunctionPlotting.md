@@ -1,5 +1,5 @@
 class FunctionPlotting:
-  def __init__(self, df, SList=[100, 200, 400, 600, 800, 1000, 1100]): 
+  def __init__(self, df, SList=[100, 200, 400, 600, 800, 1000, 1100], I0alpha=1e-6): 
     try:
       plt.rcParams.update({
         'font.size'       : 16,
@@ -124,6 +124,7 @@ class FunctionPlotting:
         # Neural network
         try:
           Rs, Gp, IL, I0, b  = tf.split(model(np.concatenate([S/1000, (T-25)/25], axis=1)), axis=1, num_or_size_splits=5)
+          I0 = I0*I0alpha
           Ipv_DNN = PVPredict().fun_Ipv(Rs[:,0], Gp[:,0], IL[:,0], I0[:,0], b[:,0], data[:,2]).numpy()
           if curve=='pv':
             yDNN=data[:, 2]*Ipv_DNN
@@ -154,6 +155,7 @@ class FunctionPlotting:
     # Neural network
     try:       
       Rs, Gp, IL, I0, b  = tf.split(model(self.Normalized(NGxView)), axis=1, num_or_size_splits=5)
+      I0 = I0*I0alpha
       yDNN = PVPredict().predict(Rs, Gp, IL, I0, b).numpy().astype('float64')
     except:
       pass
@@ -227,6 +229,7 @@ class FunctionPlotting:
         # Neural network
         try:
           Rs, Gp, IL, I0, b  = tf.split(model(np.concatenate([S/1000, (T-25)/25], axis=1)), axis=1, num_or_size_splits=5)
+          I0 = I0*I0alpha
           Ipv_DNN = PVPredict().fun_Ipv(Rs[:,0], Gp[:,0], IL[:,0], I0[:,0], b[:,0], data[:,2]).numpy()
           if curve=='pv':
             yDNN=data[:, 2]*Ipv_DNN
@@ -265,6 +268,7 @@ class FunctionPlotting:
     ErrorData, contx, conty, positionsBox, labelBox, yData = {}, 0, 0, 0, [], []
     try: 
       Rs, Gp, IL, I0, b = tf.split(model(self.Normalized(xTest)), axis=1, num_or_size_splits=5)
+      I0 = I0*I0alpha
       yDNN = np.delete(PVPredict().predict(Rs, Gp, IL, I0, b).numpy().astype('float64'), [1, 4], 1)
       ErrorData['Neural network'] = {'MAE' : self.MAE(yTest.T,  yDNN.T).numpy(),
                                      'MAPE': self.MAPE(yTest.T, yDNN.T).numpy(),
