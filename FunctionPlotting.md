@@ -218,7 +218,8 @@ class FunctionPlotting:
       Rs, Gp, IL, I0, b = [tf.reshape(k, [k.shape[0], 1]).numpy().astype('float64') for k in self.ModelParams(xTest, params, m)]
       yData.append(np.delete(PVPredict().predict(Rs, Gp, IL, I0, b), [1, 4], 1))
       ErrorData[params[m]['name']] = {'MAE' : self.MAE(yTest.T,  yData[m].T).numpy(),
-                                      'MAPE': self.MAPE(yTest.T, yData[m].T).numpy(),
+                                      #'MAPE': self.MAPE(yTest.T, yData[m].T).numpy(),
+                                      'MAPE': self.MAPE(yData[m].T, yTest.T,).numpy(),
                                       'MSE' : self.MSE(yTest.T,  yData[m].T).numpy(),
                                       'MSLE': self.MSLE(yTest.T, yData[m].T).numpy()}
     # Neural network
@@ -226,7 +227,8 @@ class FunctionPlotting:
       Rs, Gp, IL, I0, b  = self.DNNParams(xTest, model)
       yDNN = np.delete(PVPredict().predict(Rs, Gp, IL, I0, b).numpy().astype('float64'), [1, 4], 1)
       ErrorData['Neural network'] = {'MAE' : self.MAE(yTest.T,  yDNN.T).numpy(),
-                                     'MAPE': self.MAPE(yTest.T, yDNN.T).numpy(),
+                                     #'MAPE': self.MAPE(yTest.T, yDNN.T).numpy(),
+                                     'MAPE': self.MAPE(yDNN.T, yTest.T).numpy(),
                                      'MSE' : self.MSE(yTest.T,  yDNN.T).numpy(),
                                      'MSLE': self.MSLE(yTest.T, yDNN.T).numpy()}
     except:
@@ -295,7 +297,8 @@ class FunctionPlotting:
           labelBox.append(params[m]['label'])
           ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label=params[m]['name'])
           ErrorData[params[m]['name']+' - '+str(contData)] = {'MAE' : self.MAE(yReal.T,  yData.T).numpy(),
-                                                              'MAPE': self.MAPE(yReal.T, yData.T).numpy(),
+                                                              #'MAPE': self.MAPE(yReal.T, yData.T).numpy(),
+                                                              'MAPE': self.MAPE(yData.T, yReal.T).numpy(),
                                                               'MSE' : self.MSE(yReal.T,  yData.T).numpy(),
                                                               'MSLE': self.MSLE(yReal.T, yData.T).numpy(), 
                                                               'S':S, 'T':T} 
@@ -314,7 +317,8 @@ class FunctionPlotting:
           labelBox.append('NN')
           ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label='Neural network')
           ErrorData['Neural network - '+str(contData)] ={'MAE' : self.MAE(yReal.T,  yDNN.T).numpy(),
-                                                         'MAPE': self.MAPE(yReal.T, yDNN.T).numpy(),
+                                                         #'MAPE': self.MAPE(yReal.T, yDNN.T).numpy(),
+                                                         'MAPE': self.MAPE(yDNN.T, yReal.T).numpy(),
                                                          'MSE' : self.MSE(yReal.T,  yDNN.T).numpy(),
                                                          'MSLE': self.MSLE(yReal.T, yDNN.T).numpy(), 
                                                          'S':S, 'T':T} 
