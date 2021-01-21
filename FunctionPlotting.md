@@ -83,6 +83,7 @@ class FunctionPlotting:
       ax.boxplot([y[:,k] for y in Y])
       ax.xaxis.set_ticklabels(['total', 'train', 'val', 'test'], rotation=70)
       ax.set_title(['Isc (A)', 'Pmp (W)','Imp (A)', 'Vmp (V)', 'Voc (V)'][k])
+    plt.show() 
 
   def CurvesPV_IV(self, curve, params={}, model=None, showE=True):
     fig = plt.figure(figsize=(15, len(self.SList)*5))
