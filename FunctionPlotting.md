@@ -63,23 +63,26 @@ class FunctionPlotting:
         ax.legend(fontsize=14), ax.set_title(_label)
       plt.show() 
 
-  def Boxplot(self, X, X_train, X_val, X_test, y, y_train, y_val, y_test):
+  def Boxplot(self, X, Y, N=False):
     np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
     fig = plt.figure(figsize=(15, 10), dpi=80, facecolor='w', edgecolor='k')
-    gs  = gridspec.GridSpec(nrows=3, ncols=3, width_ratios=[5, 1, 5], wspace=0.03, hspace=0.5)
-    contx, conty = 0, 0
-    for num, label in enumerate(['Irradiance', 'Temperature', 'Isc (A)', 'Imp (A)', 'Vmp (V)', 'Voc (V)']):
-      ax = plt.subplot(gs[conty, contx])
-      try:
-        ax.boxplot([k[:,num] for k in [X, X_train, X_val, X_test]], vert=False)
-      except:
-        ax.boxplot([k[:,num-2] for k in [y, y_train, y_val, y_test]], vert=False)
-      ax.yaxis.set_ticklabels(['total', 'train', 'val', 'test']), ax.set_title(label)
-      contx+=2
-      if contx==4:
-        contx=0
-        conty+=1
-    plt.show() 
+    gs  = gridspec.GridSpec(nrows=3, ncols=9, width_ratios=[5, 1, 5, 1, 5, 1, 5, 1, 5], height_ratios=[3,1,9], wspace=0.1, hspace=0.1)
+    for k in range(2):
+      if k:
+        ax = plt.subplot(gs[0, 5:9 ])
+      else:
+        ax = plt.subplot(gs[0, 0:4 ])
+      ax.boxplot([x[:,k] for x in X], vert=False)
+      ax.yaxis.set_ticklabels(['total', 'train', 'val', 'test'])
+      if N:
+        ax.set_title(['Irradiance (-)', 'Temperature (-)'][k])
+      else:
+        ax.set_title(['Irradiance (W/m$^2$)', 'Temperature (°C)'][k])
+    for k in range(5):
+      ax = plt.subplot(gs[2, 2*k])
+      ax.boxplot([y[:,k] for y in Y])
+      ax.xaxis.set_ticklabels(['total', 'train', 'val', 'test'], rotation=70)
+      ax.set_title(['Isc (A)', 'Pmp (W)','Imp (A)', 'Vmp (V)', 'Voc (V)'][k])
 
   def CurvesPV_IV(self, curve, params={}, model=None, showE=True):
     fig = plt.figure(figsize=(15, len(self.SList)*5))
