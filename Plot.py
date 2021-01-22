@@ -4,7 +4,7 @@ class FunctionPlotting:
       plt.rcParams.update({
         'font.size'       : 16,
         'axes.titlesize'  : 14, 
-        'axes.labelsize'  : 20,
+        'axes.labelsize'  : 14,
         'xtick.labelsize' : 14,
         'ytick.labelsize' : 14,
         'figure.dpi'      : 80,
