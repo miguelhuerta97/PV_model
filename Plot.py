@@ -172,7 +172,7 @@ class FunctionPlotting:
             ax.plot(voltage, yDNN, label='Neural network', Linestyle='--')
           except:
             pass
-          lg = ax.legend(fontsize=10, loc=loc)
+          lg = ax.legend(fontsize=12, loc=loc)
           if curve=='pv':
             ax.text(0.05, 0.75, '\n'.join((r'$S=%.2f$(W/m$^2$)' % (S),)), 
                     transform=ax.transAxes, fontsize=12,
