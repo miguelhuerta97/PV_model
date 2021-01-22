@@ -33,13 +33,17 @@ class FunctionPlotting:
             df1[df1.columns[[4,5,6,7]]].to_numpy(dtype='float32'), 
             df1[df1.columns[1]].to_numpy()] 
 
-  def SearchCurve(self, T1, S1):
+  def SearchCurve(self, T1, S1, Filter=[False, 100]):
     idx = np.where((self.df[self.df.columns[[3]]]==[T1]).to_numpy()==True)[0]
-    aux = np.sqrt(np.abs(self.df[self.df.columns[[2]]].iloc[idx].to_numpy()**2-S1**2))
+    aux = np.square(self.df[self.df.columns[[2]]].iloc[idx].to_numpy()-S1)
     idx = idx[np.where(aux==aux.min())[0]][0]
     current = self.TimeSeries.iloc[idx][np.arange(1, self.TimeSeries.iloc[idx][0]+1, dtype=int)].to_numpy()
     voltage = self.TimeSeries.iloc[idx][np.arange(self.TimeSeries.iloc[idx][0]+1, 2*self.TimeSeries.iloc[idx][0]+1, dtype=int)].to_numpy()
-    return [current, voltage, self.df.iloc[idx]['S'], self.df.iloc[idx]['T']]
+    if Filter[0]:
+      if (S1-self.df.iloc[idx]['S'])**2 < Filter[1]:
+        return [current, voltage, self.df.iloc[idx]['S'], self.df.iloc[idx]['T']]
+    else:
+      return [current, voltage, self.df.iloc[idx]['S'], self.df.iloc[idx]['T']]
 
   def PlotLoss(self, loss, label='Mean square error'):
     if len(loss[0])!=0:
@@ -85,51 +89,114 @@ class FunctionPlotting:
       ax.set_title(['Isc (A)', 'Pmp (W)','Imp (A)', 'Vmp (V)', 'Voc (V)'][k])
     plt.show() 
 
-  def CurvesPV_IV(self, curve, params={}, model=None, showE=True):
-    fig = plt.figure(figsize=(15, len(self.SList)*5))
-    gs  = gridspec.GridSpec(nrows=len(self.SList), ncols=3, figure=fig, width_ratios=[5, 1, 5], wspace=0.03, hspace=0.5)
-    contx, conty = 0, 0
+  def CurvesPV_IV(self, curve, params={}, model=None, showE=True, Filter=[False, 100]):
+    fig = plt.figure(figsize=(10, len(self.SList)*5))
+    gs  = gridspec.GridSpec(nrows=len(self.SList), ncols=2, figure=fig, width_ratios=[5, 5], wspace=0.1, hspace=0.1)
+    contx, conty, maxVolt, yLim = 0, 0, 0, np.ones((len(self.SList), 1))
     for T1 in self.TList:
       for S1 in self.SList:
-        [current, voltage,  S, T], ax = self.SearchCurve(T1, S1), plt.subplot(gs[conty, contx])
-        # Experimental curve
-        if curve=='pv':
-          yData = voltage*current 
-          ax.set_ylabel('$p_{pv}$ (W)')
-        elif curve=='iv':
-          yData=current
-        ax.set_ylabel('$i_{pv}$ (A)')
-        if showE:
-          ax.plot(voltage, yData, label='Experimental curve')
-        # Models      
-        for m in params:
-          Rs, Gp, IL, I0, b = self.ModelParams(np.array([[S, T]]), params, m)
-          Ipv = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage).numpy()
-          if curve=='pv': 
-            yData=voltage*Ipv
-          elif curve=='iv':
-            yData=Ipv
-          ax.plot(voltage, yData, label=params[m]['name'], Linestyle='--')
-        # Neural network
         try:
-          Rs, Gp, IL, I0, b  = self.DNNParams(np.array([[S, T]])  , model)
-          Ipv_DNN = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage).numpy()[0,:]
+          [current, voltage,  S, T] = self.SearchCurve(T1, S1, Filter=Filter)
+          if np.max(voltage)>maxVolt:
+            maxVolt = np.max(voltage)
+          # Experimental curve
           if curve=='pv':
-            yDNN=voltage*Ipv_DNN
+            yData = voltage*current 
           elif curve=='iv':
-            yDNN=Ipv_DNN
-          ax.plot(voltage, yDNN, label='Neural network', Linestyle='--')
+            yData=current
+          if yLim[conty, 0] < np.max(yData):
+            yLim[conty, 0] = np.ceil(np.max(yData))
+          # Models      
+          for m in params:
+            Rs, Gp, IL, I0, b = self.ModelParams(np.array([[S, T]]), params, m)
+            Ipv = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage).numpy()
+            if curve=='pv': 
+              yData=voltage*Ipv
+            elif curve=='iv':
+              yData=Ipv
+            if yLim[conty, 0] < np.max(yData):
+              yLim[conty, 0] = np.ceil(np.max(yData))
+          # Neural network
+          try:
+            Rs, Gp, IL, I0, b  = self.DNNParams(np.array([[S, T]])  , model)
+            Ipv_DNN = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage).numpy()[0,:]
+            if curve=='pv':
+              yDNN=voltage*Ipv_DNN
+            elif curve=='iv':
+              yDNN=Ipv_DNN
+            if yLim[conty, 0] < np.max(yDNN):
+              yLim[conty, 0] = np.ceil(np.max(yDNN))
+          except:
+            pass
         except:
           pass
-        ax.grid(alpha=0.75), 
-        ax.set_ylim(bottom=0)
-        ax.set_xlabel('$v_{pv}$ (V)')
-        ax.set_title('S: '+str(S)+'(W/m$^2$) - T: '+str(T) +'(°C)')
-        ax.legend(fontsize=12, loc=2), ax.set_xlim([0, voltage.max()])
         conty+=1
         if conty//len(self.SList):
           conty=0
-          contx+=2
+    conty=0
+    for T1 in self.TList:
+      for S1 in self.SList:
+        ax =  plt.subplot(gs[conty, contx])
+        try:
+          [current, voltage,  S, T] = self.SearchCurve(T1, S1, Filter=Filter)
+          # Experimental curve
+          if curve=='pv':
+            loc=2
+            yData = voltage*current 
+            if contx==0:
+              ax.set_ylabel('$p_{pv}$ (W)')
+          elif curve=='iv':
+            loc=3
+            yData=current
+            if contx==0:
+              ax.set_ylabel('$i_{pv}$ (A)')
+          if showE:
+            ax.plot(voltage, yData, label='Experimental curve')
+          # Models      
+          for m in params:
+            Rs, Gp, IL, I0, b = self.ModelParams(np.array([[S, T]]), params, m)
+            Ipv = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage).numpy()
+            if curve=='pv': 
+              yData=voltage*Ipv
+            elif curve=='iv':
+              yData=Ipv
+            ax.plot(voltage, yData, label=params[m]['name'], Linestyle='--')
+          # Neural network
+          try:
+            Rs, Gp, IL, I0, b  = self.DNNParams(np.array([[S, T]])  , model)
+            Ipv_DNN = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage).numpy()[0,:]
+            if curve=='pv':
+              yDNN=voltage*Ipv_DNN
+            elif curve=='iv':
+              yDNN=Ipv_DNN
+            ax.plot(voltage, yDNN, label='Neural network', Linestyle='--')
+          except:
+            pass
+          lg = ax.legend(fontsize=10, loc=loc)
+          if curve=='pv':
+            ax.text(0.05, 0.75, '\n'.join((r'$S=%.2f$(W/m$^2$)' % (S),)), 
+                    transform=ax.transAxes, fontsize=12,
+                    verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+          else:
+            ax.text(0.05, 0.3, '\n'.join((r'$S=%.2f$(W/m$^2$)' % (S),)), 
+                    transform=ax.transAxes, fontsize=12,
+                    verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+        except:
+          ax.axis('off')
+          pass
+        ax.grid(alpha=0.75), 
+        ax.set_ylim([0, yLim[conty, 0]])
+        ax.set_xlim([0, maxVolt])
+        if contx:
+          ax.axes.yaxis.set_ticklabels([])
+        if conty//(len(self.SList)-1):
+          ax.set_xlabel('$v_{pv}$(V)')
+        else:
+          ax.axes.xaxis.set_ticklabels([])
+        conty+=1
+        if conty//len(self.SList):
+          conty=0
+          contx+=1
     plt.show()
 
   def Tracking(self, params, model=None, dayView='2014-01-20', showE=True):
