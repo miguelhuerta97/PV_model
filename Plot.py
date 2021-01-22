@@ -199,6 +199,87 @@ class FunctionPlotting:
           contx+=1
     plt.show()
 
+
+  def ErrorPV_IV(self, curve, params={}, model=None, outliers=1e10):  
+    fig = plt.figure(figsize=(15, len(self.SList)*7))
+    gs  = gridspec.GridSpec(nrows=len(self.SList), ncols=5, figure=fig, width_ratios=[2, 5, 2, 2, 5], wspace=0.03, hspace=0.25)
+    ErrorData, contx, conty, contData, positionsBox, labelBox = {}, 0, 0, 0, 0, []
+    for T1 in self.TList:
+      for S1 in self.SList:
+        current, voltage,  S, T = self.SearchCurve(T1, S1)
+        if contx == 0:
+          ax1, ax2 = plt.subplot(gs[conty, 0]), plt.subplot(gs[conty, 1])
+        elif contx == 2:
+          ax1, ax2 = plt.subplot(gs[conty, 3]), plt.subplot(gs[conty, 4])
+        # Experimental curve
+        if curve=='pv':
+          yReal = voltage*current
+        elif curve=='iv':
+          yReal=current   
+        # Models   
+        for m in params:
+          Rs, Gp, IL, I0, b = self.ModelParams(np.array([[S, T]]), params, m)
+          Ipv = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage).numpy()
+          if curve=='pv': 
+            yData=voltage*Ipv
+          elif curve=='iv':
+            yData=Ipv                  
+          error = tf.math.reduce_mean(1-yData.reshape(yData.shape[0], 1)/(yReal.reshape(yReal.shape[0], 1)+self.eps), 1)*100
+          error = error.numpy()[np.where(np.abs(error)<outliers)] ## Quita algunos outliers 
+          ax1.boxplot(error, vert=True, positions=[positionsBox])
+          positionsBox+=1
+          labelBox.append(params[m]['label'])
+          ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label=params[m]['name'])
+          ErrorData[params[m]['name']+' - '+str(contData)] = {'MAE' : self.MAE(yReal.T,  yData.T).numpy(),
+                                                              #'MAPE': self.MAPE(yReal.T, yData.T).numpy(),
+                                                              'MAPE': self.MAPE(yData.T, yReal.T).numpy(),
+                                                              'MSE' : self.MSE(yReal.T,  yData.T).numpy(),
+                                                              'MSLE': self.MSLE(yReal.T, yData.T).numpy(), 
+                                                              'S':S, 'T':T} 
+        # Neural network
+        try:
+          Rs, Gp, IL, I0, b  = self.DNNParams(np.array([[S, T]]), model)
+          Ipv_DNN = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage).numpy()[0,:]
+          if curve=='pv':
+            yDNN=voltage*Ipv_DNN
+          elif curve=='iv':
+            yDNN=Ipv_DNN      
+          error = tf.math.reduce_mean(1-yDNN.reshape(yDNN.shape[0], 1)/(yReal.reshape(yReal.shape[0], 1)+self.eps), 1)*100
+          error = error.numpy()[np.where(np.abs(error)<outliers)] ## Quita algunos outliers     
+          ax1.boxplot(error, vert=True, positions=[positionsBox])
+          positionsBox+=1
+          labelBox.append('NN')
+          ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label='Neural network')
+          ErrorData['Neural network - '+str(contData)] ={'MAE' : self.MAE(yReal.T,  yDNN.T).numpy(),
+                                                         #'MAPE': self.MAPE(yReal.T, yDNN.T).numpy(),
+                                                         'MAPE': self.MAPE(yDNN.T, yReal.T).numpy(),
+                                                         'MSE' : self.MSE(yReal.T,  yDNN.T).numpy(),
+                                                         'MSLE': self.MSLE(yReal.T, yDNN.T).numpy(), 
+                                                         'S':S, 'T':T} 
+        except:
+          pass
+        ax1.xaxis.tick_top()
+        ax2.legend(fontsize=12, loc=1), ax1.set_xticklabels(labelBox, fontsize=12)
+        ax1.set_ylabel('Prediction error (%)', fontsize=14)
+        ax2.xaxis.set_ticklabels(np.around(plt.xticks()[0]/error.shape[0]*100, 1))
+        ax2.yaxis.set_ticks([]), ax2.set_xlabel('Frequency (%)', fontsize=14)
+        ax2.set_title('S: '+str(S)+'(W/m$^2$) - T: '+str(T) +'(°C)')        
+        conty+=1
+        if conty//len(self.SList):
+          conty=0
+          contx+=2
+        contData+=1
+    plt.show()
+    return ErrorData
+
+    
+    
+    
+    
+    
+    
+    
+    
   def Tracking(self, params, model=None, dayView='2014-01-20', showE=True):
     NGxView, NGyView, Time = self.SearchDay(dayView=dayView)
     a1  = np.linspace(start=1, stop=NGxView.shape[0], num=NGxView.shape[0])
@@ -326,86 +407,14 @@ class FunctionPlotting:
       except:
         pass
       ax1.set_xticklabels(labelBox, fontsize=12), ax2.legend(fontsize=12, loc=1)
-      ax1.set_ylabel('Prediction error (\\%)', fontsize=14), ax1.xaxis.tick_top()
+      ax1.set_ylabel('Prediction error (%)', fontsize=14), ax1.xaxis.tick_top()
       ax2.xaxis.set_ticklabels(np.around(plt.xticks()[0]/error.shape[0]*100, 1))
-      ax2.yaxis.set_ticks([]), ax2.set_xlabel('Frequency (\\%)', fontsize=14), 
+      ax2.yaxis.set_ticks([]), ax2.set_xlabel('Frequency (%)', fontsize=14), 
       ax2.set_title(label), 
       contx+=1
       if contx//2:
         contx=0
         conty+=1    
-    plt.show()
-    return ErrorData
-
-  def ErrorPV_IV(self, curve, params={}, model=None, outliers=1e10):  
-    fig = plt.figure(figsize=(15, len(self.SList)*7))
-    gs  = gridspec.GridSpec(nrows=len(self.SList), ncols=5, figure=fig, width_ratios=[2, 5, 2, 2, 5], wspace=0.03, hspace=0.25)
-    ErrorData, contx, conty, contData, positionsBox, labelBox = {}, 0, 0, 0, 0, []
-    for T1 in self.TList:
-      for S1 in self.SList:
-        current, voltage,  S, T = self.SearchCurve(T1, S1)
-        if contx == 0:
-          ax1, ax2 = plt.subplot(gs[conty, 0]), plt.subplot(gs[conty, 1])
-        elif contx == 2:
-          ax1, ax2 = plt.subplot(gs[conty, 3]), plt.subplot(gs[conty, 4])
-        # Experimental curve
-        if curve=='pv':
-          yReal = voltage*current
-        elif curve=='iv':
-          yReal=current   
-        # Models   
-        for m in params:
-          Rs, Gp, IL, I0, b = self.ModelParams(np.array([[S, T]]), params, m)
-          Ipv = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage).numpy()
-          if curve=='pv': 
-            yData=voltage*Ipv
-          elif curve=='iv':
-            yData=Ipv                  
-          error = tf.math.reduce_mean(1-yData.reshape(yData.shape[0], 1)/(yReal.reshape(yReal.shape[0], 1)+self.eps), 1)*100
-          error = error.numpy()[np.where(np.abs(error)<outliers)] ## Quita algunos outliers 
-          ax1.boxplot(error, vert=True, positions=[positionsBox])
-          positionsBox+=1
-          labelBox.append(params[m]['label'])
-          ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label=params[m]['name'])
-          ErrorData[params[m]['name']+' - '+str(contData)] = {'MAE' : self.MAE(yReal.T,  yData.T).numpy(),
-                                                              #'MAPE': self.MAPE(yReal.T, yData.T).numpy(),
-                                                              'MAPE': self.MAPE(yData.T, yReal.T).numpy(),
-                                                              'MSE' : self.MSE(yReal.T,  yData.T).numpy(),
-                                                              'MSLE': self.MSLE(yReal.T, yData.T).numpy(), 
-                                                              'S':S, 'T':T} 
-        # Neural network
-        try:
-          Rs, Gp, IL, I0, b  = self.DNNParams(np.array([[S, T]]), model)
-          Ipv_DNN = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage).numpy()[0,:]
-          if curve=='pv':
-            yDNN=voltage*Ipv_DNN
-          elif curve=='iv':
-            yDNN=Ipv_DNN      
-          error = tf.math.reduce_mean(1-yDNN.reshape(yDNN.shape[0], 1)/(yReal.reshape(yReal.shape[0], 1)+self.eps), 1)*100
-          error = error.numpy()[np.where(np.abs(error)<outliers)] ## Quita algunos outliers     
-          ax1.boxplot(error, vert=True, positions=[positionsBox])
-          positionsBox+=1
-          labelBox.append('NN')
-          ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label='Neural network')
-          ErrorData['Neural network - '+str(contData)] ={'MAE' : self.MAE(yReal.T,  yDNN.T).numpy(),
-                                                         #'MAPE': self.MAPE(yReal.T, yDNN.T).numpy(),
-                                                         'MAPE': self.MAPE(yDNN.T, yReal.T).numpy(),
-                                                         'MSE' : self.MSE(yReal.T,  yDNN.T).numpy(),
-                                                         'MSLE': self.MSLE(yReal.T, yDNN.T).numpy(), 
-                                                         'S':S, 'T':T} 
-        except:
-          pass
-        ax1.xaxis.tick_top()
-        ax2.legend(fontsize=12, loc=1), ax1.set_xticklabels(labelBox, fontsize=12)
-        ax1.set_ylabel('Prediction error (\\%)', fontsize=14)
-        ax2.xaxis.set_ticklabels(np.around(plt.xticks()[0]/error.shape[0]*100, 1))
-        ax2.yaxis.set_ticks([]), ax2.set_xlabel('Frequency (\\%)', fontsize=14)
-        ax2.set_title('S: '+str(S)+'(W/m$^2$) - T: '+str(T) +'(°C)')        
-        conty+=1
-        if conty//len(self.SList):
-          conty=0
-          contx+=2
-        contData+=1
     plt.show()
     return ErrorData
     
