@@ -108,7 +108,7 @@ class FunctionPlotting:
           elif curve=='iv':
             yData=current
           if yLim[conty, 0] < np.max(yData):
-            yLim[conty, 0] = np.ceil(np.max(yData))
+            yLim[conty, 0] = np.max(yData)
           for m in params:# Models      
             Rs, Gp, IL, I0, b = self.ModelParams(np.array([[S, T]]), params, m)
             Ipv = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage).numpy()
@@ -117,7 +117,7 @@ class FunctionPlotting:
             elif curve=='iv':
               yData=Ipv
             if yLim[conty, 0] < np.max(yData):
-              yLim[conty, 0] = np.ceil(np.max(yData))
+              yLim[conty, 0] = np.max(yData)
           try:# Neural network
             Rs, Gp, IL, I0, b  = self.DNNParams(np.array([[S, T]])  , model)
             Ipv_DNN = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage).numpy()[0,:]
@@ -126,7 +126,7 @@ class FunctionPlotting:
             elif curve=='iv':
               yDNN=Ipv_DNN
             if yLim[conty, 0] < np.max(yDNN):
-              yLim[conty, 0] = np.ceil(np.max(yDNN))
+              yLim[conty, 0] = np.max(yDNN)
           except:
             pass
         except:
@@ -178,7 +178,7 @@ class FunctionPlotting:
           ax.axis('off')
           pass
         ax.grid(alpha=0.75), 
-        ax.set_ylim([0, yLim[conty, 0]])
+        ax.set_ylim([0, yLim[conty, 0]*1.1])
         ax.set_xlim([0, maxVolt])
         if contx:
           ax.axes.yaxis.set_ticklabels([])
