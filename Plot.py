@@ -312,6 +312,7 @@ class FunctionPlotting:
     ErrorPlot = np.array(ErrorPlot)
     if plotBar:
       width = 0.35/2
+      x = np.arange(len(ErrorPlot[ErrorPlot[:,1]==Tref,0]))
       fig = plt.figure(figsize=(15, 9))
       gs  = gridspec.GridSpec(nrows=2, ncols=4, figure=fig, wspace=0.4, hspace=0.55)
       for conty, Tref in enumerate([25, 50]):
@@ -323,7 +324,7 @@ class FunctionPlotting:
           ax.bar(x + width*3/2, ErrorPlot[ErrorPlot[:,1]==Tref, 5+4*contx],  width, label='DNN+Boyd')
           ax.set_title(['MAE', 'MSE', 'MSLE', 'MAPE'][contx])
           ax.set_xlabel('Irradiancia (W/m$^2$)')
-          ax.set_xticks(np.arange(len(ErrorPlot[ErrorPlot[:,1]==Tref,0])))
+          ax.set_xticks(x)
           ax.set_xticklabels(ErrorPlot[ErrorPlot[:,1]==Tref,0], rotation=45)
       handles, labels = ax.get_legend_handles_labels()
       fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
@@ -533,6 +534,7 @@ class FunctionPlotting:
     label = ['Total','Isc', 'Pmp','Imp','Vmp','Voc']
     if plotBar:
       width =  0.35/2
+      x = np.arange(len(label))
       fig = plt.figure(figsize=(15, 4))
       gs  = gridspec.GridSpec(1, ncols=4, figure=fig, wspace=0.4, hspace=0.55)
       for contx in range(4):
@@ -543,7 +545,7 @@ class FunctionPlotting:
         ax.bar(x + width*3/2, ErrorPlot[:, 4+4*contx],  width, label='DNN+Boyd')
         ax.set_title('\n'+['MAE', 'MSE', 'MSLE', 'MAPE'][contx])
         ax.set_xlabel('Targets')
-        ax.set_xticks(np.arange(len(label)))
+        ax.set_xticks(x)
         ax.set_xticklabels(label, rotation=45)
       handles, labels = ax.get_legend_handles_labels()
       fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
