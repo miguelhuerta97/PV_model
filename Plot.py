@@ -312,10 +312,10 @@ class FunctionPlotting:
     ErrorPlot = np.array(ErrorPlot)
     if plotBar:
       width = 0.35/2
-      x = np.arange(len(ErrorPlot[ErrorPlot[:,1]==Tref,0]))
       fig = plt.figure(figsize=(15, 9))
       gs  = gridspec.GridSpec(nrows=2, ncols=4, figure=fig, wspace=0.4, hspace=0.55)
       for conty, Tref in enumerate([25, 50]):
+        x = np.arange(len(ErrorPlot[ErrorPlot[:,1]==Tref,0]))
         for contx in range(4):
           ax = plt.subplot(gs[conty, contx])
           ax.bar(x - width*3/2, ErrorPlot[ErrorPlot[:,1]==Tref, 2+4*contx],  width, label='De Soto')
