@@ -74,11 +74,7 @@ class FunctionPlotting:
       ax.xaxis.set_ticklabels(['total', 'train', 'val', 'test'], rotation=70)
       ax.set_title(['Isc (A)', 'Pmp (W)','Imp (A)', 'Vmp (V)', 'Voc (V)'][k])
     plt.show() 
-  def SearchDay(self, dayView='2014-01-20'):
-    df1 = self.df.loc[self.df[self.df[self.df.columns[0]]==dayView][self.df.columns[0]].index]
-    return [df1[df1.columns[[2,3]]].to_numpy(dtype='float32'), 
-            df1[df1.columns[[4,5,6,7,8]]].to_numpy(dtype='float32'), 
-            df1[df1.columns[1]].to_numpy()] 
+  
   def SearchCurve(self, T1, S1, Filter=[False, 100]):
     idx = np.where((self.df[self.df.columns[[3]]]==[T1]).to_numpy()==True)[0]
     aux = np.square(self.df[self.df.columns[[2]]].iloc[idx].to_numpy()-S1)
@@ -342,9 +338,9 @@ class FunctionPlotting:
       for k in ErrorPlot:
         print("{:>7.2f} |  {:>4.1f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>12.3f} | {:>12.3f} | {:>12.3f} | {:>12.3f}".format(*k))
     return ErrorPlot
-  def TrackingPlot(self, params, model=None, dayView=1, LegendPos=[0.865, 0.777], Xticks=12, showE=True):
-    dayView=df[df.columns[0]].str.split('T').str[0].unique()[dayView]
-    [NGxView, NGyView, Time], yData = self.SearchDay(dayView=dayView), []
+  
+  def TrackingPlot(self, params, dayView, model=None, LegendPos=[0.865, 0.777], Xticks=12, showE=True):
+    [NGxView, NGyView, Time], yData = dayView, []
     for m in params: # Models
       Rs, Gp, IL, I0, b = [tf.reshape(k, [k.shape[0], 1]).numpy().astype('float64') for k in self.ModelParams(NGxView, params, m)]
       yData.append(PVPredict().predict(Rs, Gp, IL, I0, b))
@@ -396,9 +392,9 @@ class FunctionPlotting:
     fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
     fig.suptitle('\n')
     plt.show()
-  def TrackingParams(self, params, model=None, dayView=1, LegendPos=[0.865, 0.777], Xticks=12):
-    dayView=df[df.columns[0]].str.split('T').str[0].unique()[dayView]
-    [NGxView, NGyView, Time], yData = self.SearchDay(dayView=dayView), []
+    
+  def TrackingParams(self, params, dayView,  model=None, LegendPos=[0.865, 0.777], Xticks=12):
+    [NGxView, NGyView, Time], yData = dayView, []
     for m in params: # Models
       yData.append([tf.reshape(k, [k.shape[0], 1]).numpy().astype('float64') for k in self.ModelParams(NGxView, params, m)]) 
     try: # Neural network
@@ -429,7 +425,7 @@ class FunctionPlotting:
     handles, labels = ax.get_legend_handles_labels()
     fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
     plt.show()
-  def TrackingError(self, xTest, yTest, params={}, model=None, LegendPos=[1,1], outliers=1e10):
+  def TestError(self, xTest, yTest, params={}, model=None, LegendPos=[1,1], outliers=1e10):
     yData = []
     for m in params: # Models
       Rs, Gp, IL, I0, b = [tf.reshape(k, [k.shape[0], 1]).numpy().astype('float64') for k in self.ModelParams(xTest, params, m)]
@@ -476,7 +472,8 @@ class FunctionPlotting:
     handles, labels = ax2.get_legend_handles_labels()
     fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
     plt.show()
-  def TrackingTable(self, xTest, yTest, params={}, model=None, LegendPos=[1,1], ShowTable=True, plotBar=True):  
+    
+  def TestErrorTable(self, xTest, yTest, params={}, model=None, LegendPos=[1,1], ShowTable=True, plotBar=True):  
     ErrorData, ErrorPlot, yData, labels = {}, [], [], []
     for m in params: # Models
       Rs, Gp, IL, I0, b = [tf.reshape(k, [k.shape[0], 1]).numpy().astype('float64') for k in self.ModelParams(xTest, params, m)]
