@@ -334,6 +334,7 @@ $T=%.2f$(°C)""" % (S, T),)), transform=ax.transAxes,
       handles, labels = ax.get_legend_handles_labels()
       fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
       fig.suptitle('\n')
+      plt.savefig('error_'+curve+'.png', bbox_inches = 'tight')
       plt.show()
     if ShowTable:
       print("""
@@ -400,6 +401,7 @@ $T=%.2f$(°C)""" % (S, T),)), transform=ax.transAxes,
     handles, labels = ax.get_legend_handles_labels()
     fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
     fig.suptitle('\n')
+    plt.savefig('tracking.png', bbox_inches = 'tight')
     plt.show()
 
   def TrackingParams(self, params, dayView,  model=None, LegendPos=[0.865, 0.777], Xticks=12):
@@ -434,6 +436,7 @@ $T=%.2f$(°C)""" % (S, T),)), transform=ax.transAxes,
       ax.set_xlabel('Time (hh:mm)')
     handles, labels = ax.get_legend_handles_labels()
     fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
+    plt.savefig('params.png', bbox_inches = 'tight')
     plt.show()
   
   def TestError(self, xTest, yTest, params={}, model=None, LegendPos=[1,1], outliers=1e10):
@@ -483,6 +486,7 @@ $T=%.2f$(°C)""" % (S, T),)), transform=ax.transAxes,
       ax2.set_title(label)
     handles, labels = ax2.get_legend_handles_labels()
     fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
+    plt.savefig('TestError1.png', bbox_inches = 'tight')
     plt.show()
 
   def TestErrorTable(self, xTest, yTest, params={}, model=None, LegendPos=[1,1], ShowTable=True, plotBar=True):  
@@ -560,6 +564,7 @@ $T=%.2f$(°C)""" % (S, T),)), transform=ax.transAxes,
       handles, labels = ax.get_legend_handles_labels()
       fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
       fig.suptitle('\n')
+      plt.savefig('TestError2.png', bbox_inches = 'tight')
       plt.show()
     if ShowTable:
       print("""
