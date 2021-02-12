@@ -1,5 +1,5 @@
 class FunctionPlotting:
-  def __init__(self, df, SList=[100, 200, 400, 600, 800, 1000]): 
+  def __init__(self, df, idxTest, SList=[100, 200, 400, 600, 800, 1000]): 
     plt.rcParams.update({
         'lines.linewidth' : 2,
         'legend.fontsize' : 10,
@@ -13,9 +13,10 @@ class FunctionPlotting:
         'figure.edgecolor': 'k',
         'figure.figsize'  : [15,4],
         })
-    
+    self.idxTest = idxTest
     self.SList, self.TList, self.eps = SList, [25, 50], 1e-18
     self.TimeSeries = df.drop(df.columns[np.arange(0, 41)], axis=1)
+       
     self.df = df.drop(df.columns[np.append([2, 4, 6,  8, 10, 12], np.arange(14, len(df.columns)))], axis=1)
     self.X, self.Y = [self.df[self.df.columns[k]].to_numpy(dtype='float32') for k in [[1,2],[3,4,5,6,7]]]
     aux = self.df[self.df.columns[[0]][0]].str.split("T", n=1, expand=True)
@@ -36,6 +37,7 @@ class FunctionPlotting:
       return modelPV.DNNParams(x, model)
     except:
       pass
+
   def PlotLoss(self, loss, ylabel='Mean square error', LegendPos=[0.8, 0.8]):
     if len(loss[0])!=0:
       fig = plt.figure(figsize=(10, 15))
@@ -74,18 +76,18 @@ class FunctionPlotting:
       ax.xaxis.set_ticklabels(['total', 'train', 'val', 'test'], rotation=70)
       ax.set_title(['Isc (A)', 'Pmp (W)','Imp (A)', 'Vmp (V)', 'Voc (V)'][k])
     plt.show() 
-  
+
   def SearchCurve(self, T1, S1, Filter=[False, 100]):
-    idx = np.where((self.df[self.df.columns[[3]]]==[T1]).to_numpy()==True)[0]
-    aux = np.square(self.df[self.df.columns[[2]]].iloc[idx].to_numpy()-S1)
+    df = self.df.iloc[self.idxTest]
+    TimeSeries = self.TimeSeries.iloc[self.idxTest]
+    # idx = np.where((df[df.columns[[3]]]==[T1]).to_numpy()==True)[0]
+    idx = (np.where(( df[df.columns[[3]]]>=[T1*0.9]) & (df[df.columns[[3]]]<=[T1*1.1])))[0]
+    aux = np.square(df[df.columns[[2]]].iloc[idx].to_numpy()-S1)
     idx = idx[np.where(aux==aux.min())[0]][0]
-    current = self.TimeSeries.iloc[idx][np.arange(1, self.TimeSeries.iloc[idx][0]+1, dtype=int)].to_numpy()
-    voltage = self.TimeSeries.iloc[idx][np.arange(self.TimeSeries.iloc[idx][0]+1, 2*self.TimeSeries.iloc[idx][0]+1, dtype=int)].to_numpy()
-    if Filter[0]:
-      if (S1-self.df.iloc[idx]['S'])**2 < Filter[1]:
-        return [current, voltage, self.df.iloc[idx]['S'], self.df.iloc[idx]['T']]
-    else:
-      return [current, voltage, self.df.iloc[idx]['S'], self.df.iloc[idx]['T']]
+    current = TimeSeries.iloc[idx][np.arange(1, TimeSeries.iloc[idx][0]+1, dtype=int)].to_numpy()
+    voltage = TimeSeries.iloc[idx][np.arange(TimeSeries.iloc[idx][0]+1, 2*TimeSeries.iloc[idx][0]+1, dtype=int)].to_numpy()
+    return [current, voltage, df.iloc[idx]['S'], df.iloc[idx]['T']]
+
   def PV_IVCurves(self, curve, params={}, model=None, Filter=[False, 100], LegendPos=[0.865, 0.777], addElement=True, showE=True, yPos=[0.7, 0.35]):
     fig = plt.figure(figsize=(10, len(self.SList)*5))
     gs  = gridspec.GridSpec(nrows=len(self.SList), ncols=2, figure=fig, width_ratios=[1, 1], wspace=0.1, hspace=0.1)
@@ -164,10 +166,12 @@ class FunctionPlotting:
           except:
             pass
           if curve=='pv':
-            ax.text(0.05, yPos[0], '\n'.join((r'$S=%.2f$(W/m$^2$)' % (S),)), transform=ax.transAxes, 
+            ax.text(0.05, yPos[0], '\n'.join((r"""$S=%.2f$(W/m$^2$)
+$T=%.2f$(°C)""" % (S, T),)), transform=ax.transAxes, 
                     verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
           else:
-            ax.text(0.05, yPos[1], '\n'.join((r'$S=%.2f$(W/m$^2$)' % (S),)), transform=ax.transAxes, 
+            ax.text(0.05, yPos[1], '\n'.join((r"""$S=%.2f$(W/m$^2$)
+$T=%.2f$(°C)""" % (S, T),)), transform=ax.transAxes, 
                     verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
         except:
           ax.axis('off')
@@ -190,6 +194,7 @@ class FunctionPlotting:
     fig.suptitle('\n')
     plt.subplots_adjust(top=0.97)
     plt.show()
+
   def PV_IVError( self, curve, params={}, model=None, Filter=[False, 100], LegendPos=[0.865, 0.777], outliers=1e10):  
     fig = plt.figure(figsize=(10, len(self.SList)*5))
     gs  = gridspec.GridSpec(nrows=len(self.SList), ncols=5, figure=fig, width_ratios=[2, 5, 2, 2, 5], wspace=0.03, hspace=0.3)
@@ -200,6 +205,7 @@ class FunctionPlotting:
           ax1, ax2 = plt.subplot(gs[conty, 0]), plt.subplot(gs[conty, 1])
         elif contx == 2:
           ax1, ax2 = plt.subplot(gs[conty, 3]), plt.subplot(gs[conty, 4])
+        ax2.hist([0,0], density=False, alpha=0.75, orientation="horizontal")          
         try:
           current, voltage, S, T = self.SearchCurve(T1, S1, Filter=Filter)
           if curve=='pv':# Experimental curve
@@ -218,8 +224,7 @@ class FunctionPlotting:
             ax1.boxplot(error, vert=True, positions=[positionsBox])
             positionsBox+=1
             labelBox.append(params[m]['label'])
-            ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label=params[m]['name'].split(' Model')[0])
-          # Neural network
+            ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label=params[m]['name'].split(' Model')[0])          
           try:
             Rs, Gp, IL, I0, b  = self.DNNParams(np.array([[S, T]]), model)
             Ipv_DNN = PVPredict().fun_Ipv(Rs, Gp, IL, I0, b, voltage).numpy()[0,:]
@@ -239,6 +244,7 @@ class FunctionPlotting:
           ax1.set_xticklabels(labelBox)
           ax2.xaxis.set_ticklabels(np.around(plt.xticks()[0]/error.shape[0]*100, 1))
           ax2.yaxis.set_ticks([])
+          ax2.set_title(str(S)+'  -  '+ str(T))
           ax1.set_ylabel('Prediction error (%)')
           ax2.set_xlabel('Frequency (%)')    
         except:
@@ -254,6 +260,7 @@ class FunctionPlotting:
     fig.suptitle('\n')
     plt.subplots_adjust(top=0.94)
     plt.show()
+
   def PV_IVTable( self, curve, params={}, model=None, Filter=[False, 100], LegendPos=[0.865, 0.777], ShowTable=True, plotBar=True):  
     ErrorData, ErrorPlot, contData= {}, [], 0
     for T1 in self.TList:
@@ -311,17 +318,18 @@ class FunctionPlotting:
       fig = plt.figure(figsize=(15, 9))
       gs  = gridspec.GridSpec(nrows=2, ncols=4, figure=fig, wspace=0.4, hspace=0.55)
       for conty, Tref in enumerate([25, 50]):
-        x = np.arange(len(ErrorPlot[ErrorPlot[:,1]==Tref,0]))
+        x = np.arange(len(ErrorPlot[np.all([ErrorPlot[:,1]<=Tref*1.1, ErrorPlot[:,1]>=Tref*0.9], axis=0),0]))
         for contx in range(4):
           ax = plt.subplot(gs[conty, contx])
-          ax.bar(x - width*3/2, ErrorPlot[ErrorPlot[:,1]==Tref, 2+4*contx],  width, label='De Soto')
-          ax.bar(x - width/2,   ErrorPlot[ErrorPlot[:,1]==Tref, 3+4*contx],  width, label='Dobos')
-          ax.bar(x + width/2,   ErrorPlot[ErrorPlot[:,1]==Tref, 4+4*contx],  width, label='Boyd')
-          ax.bar(x + width*3/2, ErrorPlot[ErrorPlot[:,1]==Tref, 5+4*contx],  width, label='DNN+Boyd')
+          ax.bar(x, x*0,  width)
+          ax.bar(x - width*3/2, ErrorPlot[np.all([ErrorPlot[:,1]<=Tref*1.1, ErrorPlot[:,1]>=Tref*0.9], axis=0), 2+4*contx],  width, label='De Soto')
+          ax.bar(x - width/2,   ErrorPlot[np.all([ErrorPlot[:,1]<=Tref*1.1, ErrorPlot[:,1]>=Tref*0.9], axis=0), 3+4*contx],  width, label='Dobos')
+          ax.bar(x + width/2,   ErrorPlot[np.all([ErrorPlot[:,1]<=Tref*1.1, ErrorPlot[:,1]>=Tref*0.9], axis=0), 4+4*contx],  width, label='Boyd')
+          ax.bar(x + width*3/2, ErrorPlot[np.all([ErrorPlot[:,1]<=Tref*1.1, ErrorPlot[:,1]>=Tref*0.9], axis=0), 5+4*contx],  width, label='DNN+Boyd')
           ax.set_title(['MAE', 'MSE', 'MSLE', 'MAPE'][contx])
           ax.set_xlabel('Irradiancia (W/m$^2$)')
           ax.set_xticks(x)
-          ax.set_xticklabels(ErrorPlot[ErrorPlot[:,1]==Tref,0], rotation=45)
+          ax.set_xticklabels(ErrorPlot[np.all([ErrorPlot[:,1]<=Tref*1.1, ErrorPlot[:,1]>=Tref*0.9], axis=0),0], rotation=45)
       handles, labels = ax.get_legend_handles_labels()
       fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
       fig.suptitle('\n')
@@ -338,7 +346,7 @@ class FunctionPlotting:
       for k in ErrorPlot:
         print("{:>7.2f} |  {:>4.1f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>8.3f} | {:>12.3f} | {:>12.3f} | {:>12.3f} | {:>12.3f}".format(*k))
     return ErrorPlot
-  
+
   def TrackingPlot(self, params, dayView, model=None, LegendPos=[0.865, 0.777], Xticks=12, showE=True):
     [NGxView, NGyView, Time], yData = dayView, []
     for m in params: # Models
@@ -392,7 +400,7 @@ class FunctionPlotting:
     fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
     fig.suptitle('\n')
     plt.show()
-    
+
   def TrackingParams(self, params, dayView,  model=None, LegendPos=[0.865, 0.777], Xticks=12):
     [NGxView, NGyView, Time], yData = dayView, []
     for m in params: # Models
@@ -412,6 +420,7 @@ class FunctionPlotting:
                             [fig.add_subplot(gs[1, 2:5]), 'I0 (A)',        I0DNN],
                             [fig.add_subplot(gs[1, 6:9]), 'b (1/V)',        bDNN] ]:
       idx = labels.index(label)
+      ax.plot([np.nan]*2)
       for model in params:
         ax.plot(yData[model][idx], label=params[model]['name'], ls='--')
       if not(np.all(np.isnan(DNN))):
@@ -425,6 +434,7 @@ class FunctionPlotting:
     handles, labels = ax.get_legend_handles_labels()
     fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
     plt.show()
+  
   def TestError(self, xTest, yTest, params={}, model=None, LegendPos=[1,1], outliers=1e10):
     yData = []
     for m in params: # Models
@@ -448,6 +458,7 @@ class FunctionPlotting:
                                     [[fig.add_subplot(gs[1, 2]), fig.add_subplot(gs[1, 3:5])], 'Isc (A)', IscDNN],
                                     [[fig.add_subplot(gs[1, 6]), fig.add_subplot(gs[1, 7:9])], 'Voc (V)', VocDNN] ]:
       idx = labels.index(label)
+      ax2.hist([0,0], density=False, alpha=0.75, orientation="horizontal")
       for model in params:
         error = ((yTest[:,idx]-yData[model][:, idx])/yTest[:,idx])*100
         error = error[np.where(np.abs(error)<outliers)]
@@ -472,7 +483,7 @@ class FunctionPlotting:
     handles, labels = ax2.get_legend_handles_labels()
     fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
     plt.show()
-    
+
   def TestErrorTable(self, xTest, yTest, params={}, model=None, LegendPos=[1,1], ShowTable=True, plotBar=True):  
     ErrorData, ErrorPlot, yData, labels = {}, [], [], []
     for m in params: # Models
@@ -536,6 +547,7 @@ class FunctionPlotting:
       gs  = gridspec.GridSpec(1, ncols=4, figure=fig, wspace=0.4, hspace=0.55)
       for contx in range(4):
         ax = fig.add_subplot(gs[0, contx])
+        ax.bar(x, x*0,  width)
         ax.bar(x - width*3/2, ErrorPlot[:, 1+4*contx],  width, label='De Soto')
         ax.bar(x - width/2,   ErrorPlot[:, 2+4*contx],  width, label='Dobos')
         ax.bar(x + width/2,   ErrorPlot[:, 3+4*contx],  width, label='Boyd')
