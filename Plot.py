@@ -193,6 +193,7 @@ $T=%.2f$(°C)""" % (S, T),)), transform=ax.transAxes,
     fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
     fig.suptitle('\n')
     plt.subplots_adjust(top=0.97)
+    plt.savefig(curve+'.png', bbox_inches = 'tight')
     plt.show()
 
   def PV_IVError( self, curve, params={}, model=None, Filter=[False, 100], LegendPos=[0.865, 0.777], outliers=1e10):  
