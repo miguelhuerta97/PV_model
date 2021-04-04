@@ -453,7 +453,7 @@ class FunctionPlotting:
 	
 	
   def TrackingParams(self, params, dayView,  model=None, LegendPos=[0.59, 0.95], Xticks=8,
-                   labelDNN='Neural Network', save=True):
+                  labelDNN='Neural Network', save=True):
     import datetime 
     [NGxView, NGyView, Time], yData = dayView, []
     for m in params: # Models
