@@ -431,12 +431,11 @@ class FunctionPlotting:
             ax.plot(DNN, ls='--', label=labelDNN)
       a1 = np.linspace(start=1, stop=NGxView.shape[0], num=NGxView.shape[0])
       ax.set_xticks(np.where(a1%Xticks==1)[0])
+      ax.set_xticks(np.linspace(start=0, stop=NGxView.shape[0]-1, num=Xticks))
       if idx in [1, 3, 5]:
-        ax.set_xticks(np.linspace(start=0, stop=NGxView.shape[0]-1, num=Xticks))
         ax.set_xticklabels(ticks, rotation=70)
         ax.set_xlabel('Time (hh:mm)')
       else:
-	ax.set_xticks(np.linspace(start=0, stop=NGxView.shape[0]-1, num=Xticks))
         ax.axes.xaxis.set_ticklabels([])
       ax.set_xlim([0, NGxView.shape[0]-1])
       ax.grid(color='black', ls = '-.', lw = 0.1)
