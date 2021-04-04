@@ -104,40 +104,46 @@ class FunctionPlotting:
       [IscDNN, VscDNN, ImpDNN, VmpDNN, IocDNN, VocDNN] = np.ones((6,1))*np.nan
       pass
     fig = plt.figure(figsize=(15, 10))
-    gs  = gridspec.GridSpec(2, ncols=11, figure=fig, hspace=0.3, wspace=0.03)
-    positionsBox, labelBox = 0, []
+    gs  = gridspec.GridSpec(2, ncols=11, figure=fig, hspace=0.3, wspace=0.03)    
+    positionsBox, labelBox, colors = 0, [], ["#ff7f0e", "#2ca02c", "#d62728", "#9467bd"]
     labels, idx = ['Isc (A)', 'Pmp (W)', 'Imp (A)','Vmp (V)','Voc (V)'], 0
     for [ax1, ax2], label, DNN, in [[[fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1:3])],  'Pmp (W)', ImpDNN*VmpDNN],
                                     [[fig.add_subplot(gs[0, 4]), fig.add_subplot(gs[0, 5:7])],  'Imp (A)', ImpDNN],
                                     [[fig.add_subplot(gs[0, 8]), fig.add_subplot(gs[0, 9:11])], 'Vmp (V)', VmpDNN],
                                     [[fig.add_subplot(gs[1, 2]), fig.add_subplot(gs[1, 3:5])],  'Isc (A)', IscDNN],
                                     [[fig.add_subplot(gs[1, 6]), fig.add_subplot(gs[1, 7:9])],  'Voc (V)', VocDNN] ]:
-      idx = labels.index(label)
-      ax2.hist([0,np.nan], density=False, alpha=0.75, orientation="horizontal")
+      idx= labels.index(label)
       for model in params:
         error = ((yTest[:,idx]-yData[model][:, idx])/yTest[:,idx])*100
         try: P0 = metrics[params[model]['name']]
         except: P0 = {}
         P0[label[:-4]]=[error.mean(), error.std()]
         metrics[params[model]['name']] = P0
-        ax1.boxplot(error, vert=True, positions=[positionsBox])
-        positionsBox+=1
+        box = ax1.boxplot(error, vert=True, positions=[positionsBox], patch_artist=True, widths=0.4)
+        plt.setp(box["boxes"], facecolor=colors[positionsBox])
+        plt.setp(box['medians'], color='black')
         labelBox.append('\n\n'+params[model]['label'])
-        ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label=params[model]['name'])
+        ax2.hist(error*100, 50, weights=np.ones(len(error))/len(error), density=False, alpha=0.75, 
+                 orientation="horizontal", label=params[model]['name'], color=colors[positionsBox])
+        positionsBox+=1
       if not(np.all(np.isnan(DNN))):
         error = ((yTest[:,idx]-DNN[:,0])/yTest[:,idx])*100
         try: P0 = metrics[labelDNN]
         except: P0 = {}
         P0[label[:-4]]=[error.mean(), error.std()]
         metrics[labelDNN] = P0
-        ax1.boxplot(error, vert=True, positions=[positionsBox])
-        positionsBox+=1
+        box = ax1.boxplot(error, vert=True, positions=[positionsBox], patch_artist=True, widths=0.4)
+        plt.setp(box["boxes"], facecolor=colors[positionsBox])
+        plt.setp(box['medians'], color='black')
         labelBox.append('NN')
-        ax2.hist(error*100, 50, density=False, alpha=0.75, orientation="horizontal", label=labelDNN)
+        ax2.hist(error*100, 50, weights=np.ones(len(error))/len(error), density=False, alpha=0.75, orientation="horizontal", 
+                 label=labelDNN, color=colors[positionsBox])
+        positionsBox+=1
+      positionsBox=0
       ax1.set_xticklabels(labelBox), 
       ax1.set_ylabel('Prediction error (%)'), 
       ax1.xaxis.tick_top()
-      ax2.xaxis.set_ticklabels(np.around(ax2.get_xticks()/error.shape[0]*100, 1))
+      ax2.xaxis.set_major_formatter(PercentFormatter(1))      
       ax2.yaxis.set_ticks([]), 
       ax2.set_xlabel('Frequency (%)'), 
       ax2.set_title(label)
@@ -430,6 +436,7 @@ class FunctionPlotting:
         ax.set_xticklabels(ticks, rotation=70)
         ax.set_xlabel('Time (hh:mm)')
       else:
+	ax.set_xticks(np.linspace(start=0, stop=NGxView.shape[0]-1, num=Xticks))
         ax.axes.xaxis.set_ticklabels([])
       ax.set_xlim([0, NGxView.shape[0]-1])
       ax.grid(color='black', ls = '-.', lw = 0.1)
