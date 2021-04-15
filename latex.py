@@ -35,7 +35,7 @@ def latex(PVModule,metrics,errorPV):
 \newcommand{\addeq}[1]{eq.~\ref{#1}}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\midoper}{mid}
-\graphicspath{{FIgs/Results/%s/}}
+\graphicspath{{FIgs/%s/}}
 \begin{document}
 \begin{figure}[!ht]
     \centering
