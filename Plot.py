@@ -491,6 +491,133 @@ class FunctionPlotting:
 	
 	
 	
+
+  def plot3D(self, model, zlabel, clabel, PVModule, save=False, gridpts=400):
+    from scipy.interpolate import griddata
+    import matplotlib.colors
+    xNorm=np.array([
+                                [1100.,   25.],[1100.,   50.],[1100.,   75.],
+                  [1000.,   15.],[1000.,   25.],[1000.,   50.],[1000.,   75.],
+                  [ 800.,   15.],[ 800.,   25.],[ 800.,   50.],[ 800.,   75.],
+                  [ 600.,   15.],[ 600.,   25.],[ 600.,   50.],[ 600.,   75.],
+                  [ 400.,   15.],[ 400.,   25.],[ 400.,   50.],
+                  [ 200.,   15.],[ 200.,   25.],[ 200.,   50.],
+                  [ 100.,   15.],[ 100.,   25.],  
+                  ])
+
+    Rs, Gp, IL, I0, b = modelPV.DNNParams(xNorm, model, False)
+    Isc, Vsc, Imp, Vmp, Ioc, Voc = tf.split(PVPredict().predict(Rs, Gp, IL, I0, b, MaxIterations=200, alpha=0, beta=0.8), axis=1, num_or_size_splits=6)
+    outlabel = zlabel+'_'+clabel+'.png'
+
+    x, y = xNorm[:,0], xNorm[:,1]
+    if   'Rs'  in zlabel: 
+      z, view, zlabel = Rs, 30, 0
+    elif 'Gp'  in zlabel: 
+      z, view, zlabel = Gp, -120, 1
+    elif 'IL'  in zlabel: 
+      z, view, zlabel = IL, -120, 2
+    elif 'I0'  in zlabel: 
+      z, view, zlabel = I0, -30, 3
+    elif 'b'   in zlabel: 
+      z, view, zlabel = b, 135, 4
+    elif 'Isc' in zlabel: 
+      z, view, zlabel = Isc, -120, 5
+    elif 'Voc' in zlabel: 
+      z, view, zlabel = Voc, 120, 6
+    elif 'Imp' in zlabel: 
+      z, view, zlabel = Imp, -120, 7
+    elif 'Vmp' in zlabel: 
+      z, view, zlabel = Vmp, 120, 8
+    elif 'Pmp' in zlabel: 
+      z, view, zlabel = Imp*Vmp, -120, 9
+
+    if   'Rs'  in clabel: 
+      c, clabel = Rs, 0
+    elif 'Gp'  in clabel:
+      c, clabel = Gp, 1
+    elif 'IL'  in clabel:
+      c, clabel = IL, 2
+    elif 'I0'  in clabel:
+      c, clabel = I0, 3
+    elif 'b'   in clabel:
+      c, clabel = b, 4
+    elif 'Isc' in clabel:
+      c, clabel = Isc, 5
+    elif 'Voc' in clabel:
+      c, clabel = Voc, 6
+    elif 'Imp' in clabel:
+      c, clabel = Imp, 7
+    elif 'Vmp' in clabel:
+      c, clabel = Vmp, 8
+    elif 'Pmp' in clabel:
+      c, clabel = Imp*Vmp, 9
+
+    z, c = [k.numpy().flatten() for k in [z,c]]
+
+    zlabel = ['Rs ($\Omega$)', 'Gp (S)', 'IL (A)', 'I0 (A)', 'b (1/V)', 'Isc (A)', 'Voc (V)', 'Imp (A)', 'Vmp (V)', 'Pmp (W)'][zlabel]
+    clabel = ['Rs ($\Omega$)', 'Gp (S)', 'IL (A)', 'I0 (A)', 'b (1/V)', 'Isc (A)', 'Voc (V)', 'Imp (A)', 'Vmp (V)', 'Pmp (W)'][clabel]
+    
+    s   = 10
+    pts = gridpts
+    cmap = plt.cm.get_cmap("jet", 20)
+    inter = 'linear'
+
+    x2, y2 = np.meshgrid(np.linspace(x.min(), x.max(), pts), np.linspace(y.min(), y.max(), pts))
+    z2 = griddata((x, y), z, (x2, y2), method=inter)
+    c2 = griddata((x, y), c, (x2, y2), method=inter)
+
+
+    fig = plt.figure(figsize=(16, 12), dpi=80)
+    gs = gridspec.GridSpec(7, 4, width_ratios=[10, 10, 10, 1], height_ratios=[1, 10, 1, 10, 1, 10, 1], hspace=0.3, wspace=0.1)
+    ax1 = plt.subplot(gs[:, 1:3], projection='3d')
+    ax2 = plt.subplot(gs[1, 0])
+    ax3 = plt.subplot(gs[3, 0])
+    ax4 = plt.subplot(gs[5, 0])
+    axb = plt.subplot(gs[1:6, 3])
+    
+    
+    ax1.view_init(30, view)
+
+    norm = matplotlib.colors.Normalize(vmin=np.nanmin(c2), vmax=np.nanmax(c2))
+    surf = ax1.plot_surface(x2, y2, z2, facecolors=cmap(norm(c2)), shade=False, antialiased=False, cstride=1, rstride=1, alpha=0.7, lw=0)
+    ax2.pcolor(x2, y2, c2, cmap=cmap, norm=norm, antialiased=False, lw=1, vmin=np.nanmin(c2), vmax=np.nanmax(c2), alpha=0.7)
+    ax3.pcolor(x2, z2, c2, cmap=cmap, norm=norm, antialiased=False, lw=1, vmin=np.nanmin(c2), vmax=np.nanmax(c2), alpha=0.7)
+    ax4.pcolor(y2, z2, c2, cmap=cmap, norm=norm, antialiased=False, lw=1, vmin=np.nanmin(c2), vmax=np.nanmax(c2), alpha=0.7)
+
+
+    x3, y3 = np.meshgrid(np.unique(x), np.unique(y))
+    z3 = griddata((x, y), z, (x3, y3), method=inter)
+    c3 = griddata((x, y), c, (x3, y3), method=inter)
+    # ax1.plot_wireframe(x3, y3, z3, rstride=1, cstride=1, lw=0.3, color='black')
+    
+    m = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    m.set_array([])
+    cbar = fig.colorbar(m, cax=axb, extend='both', alpha=0.7)
+    cbar.mappable.set_clim([np.nanmin(c2), np.nanmax(c2)])
+    axb.set_title(clabel)  
+
+    
+    ax1.scatter(x,y,z, s=s, color='black')
+    ax1.set_xlabel('Irradiance (W/m$^2$)')
+    ax1.set_ylabel('Temperature (°C)')
+    ax1.set_zlabel(zlabel)
+
+    ax2.scatter(x, y, s=s, color='black')
+    ax2.set_xlabel('Irradiance (W/m$^2$)')
+    ax2.set_ylabel('Temperature (°C)')
+
+    ax3.scatter(x, z, s=s, color='black')
+    ax3.set_xlabel('Irradiance (W/m$^2$)')
+    ax3.set_ylabel(zlabel)
+
+    ax4.scatter(y, z, s=s, color='black')
+    ax4.set_xlabel('Temperature (°C)')
+    ax4.set_ylabel(zlabel)
+    ax1.set_title(PVModule)
+    if save: plt.savefig(outlabel, bbox_inches = 'tight')
+    plt.show()
+	
+	
 	
   
   
