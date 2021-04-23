@@ -582,9 +582,9 @@ class FunctionPlotting:
     ax4.pcolor(y2, z2, c2, cmap=cmap, norm=norm, antialiased=False, lw=1, vmin=np.nanmin(c2), vmax=np.nanmax(c2), alpha=0.7)
 
 
-    x3, y3 = np.meshgrid(np.unique(x), np.unique(y))
-    z3 = griddata((x, y), z, (x3, y3), method=inter)
-    c3 = griddata((x, y), c, (x3, y3), method=inter)
+    # x3, y3 = np.meshgrid(np.unique(x), np.unique(y))
+    # z3 = griddata((x, y), z, (x3, y3), method=inter)
+    # c3 = griddata((x, y), c, (x3, y3), method=inter)
     # ax1.plot_wireframe(x3, y3, z3, rstride=1, cstride=1, lw=0.3, color='black')
     
     m = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
