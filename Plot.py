@@ -488,13 +488,12 @@ class FunctionPlotting:
     fig.legend(handles, labels, loc=1, bbox_to_anchor=LegendPos, ncol=len(labels))
     if save: plt.savefig('params.png', bbox_inches = 'tight')
     plt.show()
-	
-	
-	
 
-  def plot3D(self, model, zlabel, clabel, PVModule, save=False, gridpts=400):
+  def plot3D(self, model, zlabel, clabel, PVModule, save=False, gridpts=50, s=10):
     from scipy.interpolate import griddata
     import matplotlib.colors
+    cmap     = plt.cm.get_cmap("jet", 20)
+    outlabel = zlabel+'_'+clabel+'.png'
     xNorm=np.array([
                                 [1100.,   25.],[1100.,   50.],[1100.,   75.],
                   [1000.,   15.],[1000.,   25.],[1000.,   50.],[1000.,   75.],
@@ -505,68 +504,67 @@ class FunctionPlotting:
                   [ 100.,   15.],[ 100.,   25.],  
                   ])
 
+    x, y = xNorm[:,0], xNorm[:,1]
+    x2, y2 = np.meshgrid(np.linspace(x.min(), x.max(), gridpts), np.linspace(y.min(), y.max(), gridpts))
+
     Rs, Gp, IL, I0, b = modelPV.DNNParams(xNorm, model, False)
     Isc, Vsc, Imp, Vmp, Ioc, Voc = tf.split(PVPredict().predict(Rs, Gp, IL, I0, b, MaxIterations=200, alpha=0, beta=0.8), axis=1, num_or_size_splits=6)
-    outlabel = zlabel+'_'+clabel+'.png'
 
-    x, y = xNorm[:,0], xNorm[:,1]
+    Rs2, Gp2, IL2, I02, b2 = modelPV.DNNParams(np.array([x2, y2]).T.reshape(-1,2), model, False)
+    Isc2, Vsc2, Imp2, Vmp2, Ioc2, Voc2 = tf.split(PVPredict().predict(Rs2, Gp2, IL2, I02, b2), axis=1, num_or_size_splits=6)
+
     if   'Rs'  in zlabel: 
-      z, view, zlabel = Rs, 30, 0
+      z, z2, view, zlabel = Rs, Rs2, 30, 0
     elif 'Gp'  in zlabel: 
-      z, view, zlabel = Gp, -120, 1
+      z, z2, view, zlabel = Gp, Gp2, -120, 1
     elif 'IL'  in zlabel: 
-      z, view, zlabel = IL, -120, 2
+      z, z2, view, zlabel = IL, IL2, -120, 2
     elif 'I0'  in zlabel: 
-      z, view, zlabel = I0, -30, 3
+      z, z2, view, zlabel = I0, I02, -30, 3
     elif 'b'   in zlabel: 
-      z, view, zlabel = b, 135, 4
+      z, z2, view, zlabel = b, b2, 135, 4
     elif 'Isc' in zlabel: 
-      z, view, zlabel = Isc, -120, 5
+      z, z2, view, zlabel = Isc, Isc2, -120, 5
     elif 'Voc' in zlabel: 
-      z, view, zlabel = Voc, 120, 6
+      z, z2, view, zlabel = Voc, Voc2, 120, 6
     elif 'Imp' in zlabel: 
-      z, view, zlabel = Imp, -120, 7
+      z, z2, view, zlabel = Imp, Imp2, -120, 7
     elif 'Vmp' in zlabel: 
-      z, view, zlabel = Vmp, 120, 8
+      z, z2, view, zlabel = Vmp, Vmp2, 120, 8
     elif 'Pmp' in zlabel: 
-      z, view, zlabel = Imp*Vmp, -120, 9
+      z, z2, view, zlabel = Imp*Vmp, Imp2*Vmp2, -120, 9
 
     if   'Rs'  in clabel: 
-      c, clabel = Rs, 0
+      c, c2, clabel = Rs, Rs2, 0
     elif 'Gp'  in clabel:
-      c, clabel = Gp, 1
+      c, c2, clabel = Gp, Gp2, 1
     elif 'IL'  in clabel:
-      c, clabel = IL, 2
+      c, c2, clabel = IL, IL2, 2
     elif 'I0'  in clabel:
-      c, clabel = I0, 3
+      c, c2, clabel = I0, I02, 3
     elif 'b'   in clabel:
-      c, clabel = b, 4
+      c, c2, clabel = b, b2, 4
     elif 'Isc' in clabel:
-      c, clabel = Isc, 5
+      c, c2, clabel = Isc, Isc2, 5
     elif 'Voc' in clabel:
-      c, clabel = Voc, 6
+      c, c2, clabel = Voc, Voc2, 6
     elif 'Imp' in clabel:
-      c, clabel = Imp, 7
+      c, c2, clabel = Imp, Imp2, 7
     elif 'Vmp' in clabel:
-      c, clabel = Vmp, 8
+      c, c2, clabel = Vmp, Vmp2, 8
     elif 'Pmp' in clabel:
-      c, clabel = Imp*Vmp, 9
-
-    z, c = [k.numpy().flatten() for k in [z,c]]
+      c, c2, clabel = Imp*Vmp, Imp2*Vmp2, 9
 
     zlabel = ['Rs ($\Omega$)', 'Gp (S)', 'IL (A)', 'I0 (A)', 'b (1/V)', 'Isc (A)', 'Voc (V)', 'Imp (A)', 'Vmp (V)', 'Pmp (W)'][zlabel]
     clabel = ['Rs ($\Omega$)', 'Gp (S)', 'IL (A)', 'I0 (A)', 'b (1/V)', 'Isc (A)', 'Voc (V)', 'Imp (A)', 'Vmp (V)', 'Pmp (W)'][clabel]
+
+    z, c = [k.numpy().flatten() for k in [z,c]]
+
+    mask = np.isnan(griddata((x, y), z, (x2, y2), method='linear'))
+    z2, c2 = [k.numpy().reshape(x2.shape).T for k in [z2,c2]]
+    z2[np.where(mask==True)] = np.nan
+    c2[np.where(mask==True)] = np.nan
     
-    s   = 10
-    pts = gridpts
-    cmap = plt.cm.get_cmap("jet", 20)
-    inter = 'linear'
-
-    x2, y2 = np.meshgrid(np.linspace(x.min(), x.max(), pts), np.linspace(y.min(), y.max(), pts))
-    z2 = griddata((x, y), z, (x2, y2), method=inter)
-    c2 = griddata((x, y), c, (x2, y2), method=inter)
-
-
     fig = plt.figure(figsize=(16, 12), dpi=80)
     gs = gridspec.GridSpec(7, 4, width_ratios=[10, 10, 10, 1], height_ratios=[1, 10, 1, 10, 1, 10, 1], hspace=0.3, wspace=0.1)
     ax1 = plt.subplot(gs[:, 1:3], projection='3d')
@@ -574,7 +572,6 @@ class FunctionPlotting:
     ax3 = plt.subplot(gs[3, 0])
     ax4 = plt.subplot(gs[5, 0])
     axb = plt.subplot(gs[1:6, 3])
-    
     
     ax1.view_init(30, view)
 
@@ -617,15 +614,3 @@ class FunctionPlotting:
     if save: plt.savefig(outlabel, bbox_inches = 'tight')
     plt.show()
 	
-	
-	
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
