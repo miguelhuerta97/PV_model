@@ -489,7 +489,7 @@ class FunctionPlotting:
     if save: plt.savefig('params.png', bbox_inches = 'tight')
     plt.show()
 
-  def plot3D(self, model, zlabel, clabel, PVModule, save=False, gridpts=50, s=10):
+  def plot3D(model, zlabel, clabel, PVModule, save=False, gridpts=50, s=10):
     from scipy.interpolate import griddata
     import matplotlib.colors
     cmap     = plt.cm.get_cmap("jet", 20)
@@ -520,7 +520,7 @@ class FunctionPlotting:
     elif 'IL'  in zlabel: 
       z, z2, view, zlabel = IL, IL2, -120, 2
     elif 'I0'  in zlabel: 
-      z, z2, view, zlabel = I0, I02, -30, 3
+      z, z2, view, zlabel = tf.math.log(I0), tf.math.log(I02), -30, 3
     elif 'b'   in zlabel: 
       z, z2, view, zlabel = b, b2, 135, 4
     elif 'Isc' in zlabel: 
@@ -541,7 +541,7 @@ class FunctionPlotting:
     elif 'IL'  in clabel:
       c, c2, clabel = IL, IL2, 2
     elif 'I0'  in clabel:
-      c, c2, clabel = I0, I02, 3
+      c, c2, clabel = tf.math.log(I0), tf.math.log(I02), 3
     elif 'b'   in clabel:
       c, c2, clabel = b, b2, 4
     elif 'Isc' in clabel:
@@ -555,8 +555,8 @@ class FunctionPlotting:
     elif 'Pmp' in clabel:
       c, c2, clabel = Imp*Vmp, Imp2*Vmp2, 9
 
-    zlabel = ['Rs ($\Omega$)', 'Gp (S)', 'IL (A)', 'I0 (A)', 'b (1/V)', 'Isc (A)', 'Voc (V)', 'Imp (A)', 'Vmp (V)', 'Pmp (W)'][zlabel]
-    clabel = ['Rs ($\Omega$)', 'Gp (S)', 'IL (A)', 'I0 (A)', 'b (1/V)', 'Isc (A)', 'Voc (V)', 'Imp (A)', 'Vmp (V)', 'Pmp (W)'][clabel]
+    zlabel = ['Rs ($\Omega$)', 'Gp (S)', 'IL (A)', 'Log(I0)', 'b (1/V)', 'Isc (A)', 'Voc (V)', 'Imp (A)', 'Vmp (V)', 'Pmp (W)'][zlabel]
+    clabel = ['Rs ($\Omega$)', 'Gp (S)', 'IL (A)', 'Log(I0)', 'b (1/V)', 'Isc (A)', 'Voc (V)', 'Imp (A)', 'Vmp (V)', 'Pmp (W)'][clabel]
 
     z, c = [k.numpy().flatten() for k in [z,c]]
 
@@ -580,19 +580,12 @@ class FunctionPlotting:
     ax2.pcolor(x2, y2, c2, cmap=cmap, norm=norm, antialiased=False, lw=1, vmin=np.nanmin(c2), vmax=np.nanmax(c2), alpha=0.7)
     ax3.pcolor(x2, z2, c2, cmap=cmap, norm=norm, antialiased=False, lw=1, vmin=np.nanmin(c2), vmax=np.nanmax(c2), alpha=0.7)
     ax4.pcolor(y2, z2, c2, cmap=cmap, norm=norm, antialiased=False, lw=1, vmin=np.nanmin(c2), vmax=np.nanmax(c2), alpha=0.7)
-
-
-    # x3, y3 = np.meshgrid(np.unique(x), np.unique(y))
-    # z3 = griddata((x, y), z, (x3, y3), method=inter)
-    # c3 = griddata((x, y), c, (x3, y3), method=inter)
-    # ax1.plot_wireframe(x3, y3, z3, rstride=1, cstride=1, lw=0.3, color='black')
     
     m = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     m.set_array([])
     cbar = fig.colorbar(m, cax=axb, extend='both', alpha=0.7)
     cbar.mappable.set_clim([np.nanmin(c2), np.nanmax(c2)])
     axb.set_title(clabel)  
-
     
     ax1.scatter(x,y,z, s=s, color='black')
     ax1.set_xlabel('Irradiance (W/m$^2$)')
@@ -613,4 +606,3 @@ class FunctionPlotting:
     ax1.set_title(PVModule)
     if save: plt.savefig(outlabel, bbox_inches = 'tight')
     plt.show()
-	
