@@ -489,7 +489,7 @@ class FunctionPlotting:
     if save: plt.savefig('params.png', bbox_inches = 'tight')
     plt.show()
 
-  def plot3D(model, zlabel, clabel, PVModule, save=False, gridpts=50, s=10):
+  def plot3D(self, model, zlabel, clabel, PVModule, save=False, gridpts=50, s=10):
     from scipy.interpolate import griddata
     import matplotlib.colors
     cmap     = plt.cm.get_cmap("jet", 20)
