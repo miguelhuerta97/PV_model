@@ -495,7 +495,7 @@ class FunctionPlotting:
     cmap     = plt.cm.get_cmap("jet", 20)
     outlabel = zlabel+'_'+clabel+'.png'
     xNorm=np.array([
-                                [1100.,   25.],[1100.,   50.],[1100.,   75.],
+                                 [1100.,   25.],[1100.,   50.],[1100.,   75.],
                   [1000.,   15.],[1000.,   25.],[1000.,   50.],[1000.,   75.],
                   [ 800.,   15.],[ 800.,   25.],[ 800.,   50.],[ 800.,   75.],
                   [ 600.,   15.],[ 600.,   25.],[ 600.,   50.],[ 600.,   75.],
@@ -504,77 +504,50 @@ class FunctionPlotting:
                   [ 100.,   15.],[ 100.,   25.],  
                   ])
 
-    x, y = xNorm[:,0], xNorm[:,1]
-    x2, y2 = np.meshgrid(np.linspace(x.min(), x.max(), gridpts), np.linspace(y.min(), y.max(), gridpts))
+    x1, y1 = xNorm[:,0], xNorm[:,1]
+    x2, y2 = np.meshgrid(np.linspace(x1.min(), x1.max(), gridpts), np.linspace(y1.min(), y1.max(), gridpts))    
+    Rs1, Gp1, IL1, I01, b1 = modelPV.DNNParams(xNorm, model, False)
+    Isc1, Vsc1, Imp1, Vmp1, Ioc1, Voc1 = tf.split(PVPredict().predict(Rs1, Gp1, IL1, I01, b1), axis=1, num_or_size_splits=6)
+    aaa = np.array([x2, y2]).T.reshape(-1,2)
+    
+    # El metodo de la secante al parecer se satura con una cantidad de datos usados (160000)
+    # Isc2, Vsc2, Imp2, Vmp2, Ioc2, Voc2 = tf.split(PVPredict().predict(Rs2, Gp2, IL2, I02, b2, MaxIterations=200, alpha=0, beta=2), axis=1, num_or_size_splits=6)  
+    Rs2, Gp2, IL2, I02, b2, Isc2,  Imp2, Vmp2, Voc2, data = [],[],[],[],[],[],[],[],[],[]
+    for x in np.unique(x2):
+      Rs, Gp, IL, I0, b = modelPV.DNNParams(aaa[aaa[:,0]==x], model, False)
+      Isc, Vsc, Imp, Vmp, Ioc, Voc = tf.split(PVPredict().predict(Rs, Gp, IL, I0, b), axis=1, num_or_size_splits=6)  
+      Rs2.append(Rs)
+      Gp2.append(Gp)
+      IL2.append(IL)
+      I02.append(I0)
+      b2.append(b)
+      Isc2.append(Isc)
+      Imp2.append(Imp)
+      Vmp2.append(Vmp)
+      Voc2.append(Voc)
+    Rs2, Gp2, IL2, I02, b2, Isc2,  Imp2, Vmp2, Voc2 =[np.vstack(k) for k in [Rs2, Gp2, IL2, I02, b2, Isc2,  Imp2, Vmp2, Voc2]]
 
-    Rs, Gp, IL, I0, b = modelPV.DNNParams(xNorm, model, False)
-    Isc, Vsc, Imp, Vmp, Ioc, Voc = tf.split(PVPredict().predict(Rs, Gp, IL, I0, b, MaxIterations=200, alpha=0, beta=0.8), axis=1, num_or_size_splits=6)
-
-    Rs2, Gp2, IL2, I02, b2 = modelPV.DNNParams(np.array([x2, y2]).T.reshape(-1,2), model, False)
-    Isc2, Vsc2, Imp2, Vmp2, Ioc2, Voc2 = tf.split(PVPredict().predict(Rs2, Gp2, IL2, I02, b2), axis=1, num_or_size_splits=6)
-
-    if   'Rs'  in zlabel: 
-      z, z2, view, zlabel = Rs, Rs2, 30, 0
-    elif 'Gp'  in zlabel: 
-      z, z2, view, zlabel = Gp, Gp2, -120, 1
-    elif 'IL'  in zlabel: 
-      z, z2, view, zlabel = IL, IL2, -120, 2
-    elif 'I0'  in zlabel: 
-      z, z2, view, zlabel = tf.math.log(I0), tf.math.log(I02), -30, 3
-    elif 'b'   in zlabel: 
-      z, z2, view, zlabel = b, b2, 135, 4
-    elif 'Isc' in zlabel: 
-      z, z2, view, zlabel = Isc, Isc2, -120, 5
-    elif 'Voc' in zlabel: 
-      z, z2, view, zlabel = Voc, Voc2, 120, 6
-    elif 'Imp' in zlabel: 
-      z, z2, view, zlabel = Imp, Imp2, -120, 7
-    elif 'Vmp' in zlabel: 
-      z, z2, view, zlabel = Vmp, Vmp2, 120, 8
-    elif 'Pmp' in zlabel: 
-      z, z2, view, zlabel = Imp*Vmp, Imp2*Vmp2, -120, 9
-
-    if   'Rs'  in clabel: 
-      c, c2, clabel = Rs, Rs2, 0
-    elif 'Gp'  in clabel:
-      c, c2, clabel = Gp, Gp2, 1
-    elif 'IL'  in clabel:
-      c, c2, clabel = IL, IL2, 2
-    elif 'I0'  in clabel:
-      c, c2, clabel = tf.math.log(I0), tf.math.log(I02), 3
-    elif 'b'   in clabel:
-      c, c2, clabel = b, b2, 4
-    elif 'Isc' in clabel:
-      c, c2, clabel = Isc, Isc2, 5
-    elif 'Voc' in clabel:
-      c, c2, clabel = Voc, Voc2, 6
-    elif 'Imp' in clabel:
-      c, c2, clabel = Imp, Imp2, 7
-    elif 'Vmp' in clabel:
-      c, c2, clabel = Vmp, Vmp2, 8
-    elif 'Pmp' in clabel:
-      c, c2, clabel = Imp*Vmp, Imp2*Vmp2, 9
-
-    zlabel = ['Rs ($\Omega$)', 'Gp (S)', 'IL (A)', 'Log(I0)', 'b (1/V)', 'Isc (A)', 'Voc (V)', 'Imp (A)', 'Vmp (V)', 'Pmp (W)'][zlabel]
-    clabel = ['Rs ($\Omega$)', 'Gp (S)', 'IL (A)', 'Log(I0)', 'b (1/V)', 'Isc (A)', 'Voc (V)', 'Imp (A)', 'Vmp (V)', 'Pmp (W)'][clabel]
-
-    z, c = [k.numpy().flatten() for k in [z,c]]
-
-    mask = np.isnan(griddata((x, y), z, (x2, y2), method='linear'))
-    z2, c2 = [k.numpy().reshape(x2.shape).T for k in [z2,c2]]
+    idz = ['b', 'Rs', 'Gp', 'IL', 'I0', 'Isc', 'Voc', 'Vmp', 'Imp', 'Pmp'].index(zlabel)
+    idc = ['b', 'Rs', 'Gp', 'IL', 'I0', 'Isc', 'Voc', 'Vmp', 'Imp', 'Pmp'].index(clabel)
+    view = [135, 30, -120, -120, -30, -120, 120, 120, -120, -120][idz]
+    zlabel = ['b (1/V)', 'Rs ($\Omega$)', 'Gp (S)', 'IL (A)', 'Log(I0)', 'Isc (A)', 'Voc (V)', 'Vmp (V)', 'Imp (A)', 'Pmp (W)'][idz]
+    clabel = ['b (1/V)', 'Rs ($\Omega$)', 'Gp (S)', 'IL (A)', 'Log(I0)', 'Isc (A)', 'Voc (V)', 'Vmp (V)', 'Imp (A)', 'Pmp (W)'][idc]
+    z1 = [b1, Rs1, Gp1, IL1, tf.math.log(I01), Isc1, Voc1, Vmp1, Imp1, Imp1*Vmp1][idz].numpy().flatten()
+    c1 = [b1, Rs1, Gp1, IL1, tf.math.log(I01), Isc1, Voc1, Vmp1, Imp1, Imp1*Vmp1][idc].numpy().flatten()
+    z2 = [b2, Rs2, Gp2, IL2, np.log(I02), Isc2, Voc2, Vmp2, Imp2, Imp2*Vmp2][idz].reshape(x2.shape).T
+    c2 = [b2, Rs2, Gp2, IL2, np.log(I02), Isc2, Voc2, Vmp2, Imp2, Imp2*Vmp2][idc].reshape(x2.shape).T
+    mask = np.isnan(griddata((x1, y1), z1, (x2, y2), method='linear'))
     z2[np.where(mask==True)] = np.nan
-    c2[np.where(mask==True)] = np.nan
+    c2[np.where(mask==True)] = np.nan   
     
     fig = plt.figure(figsize=(16, 12), dpi=80)
     gs = gridspec.GridSpec(7, 4, width_ratios=[10, 10, 10, 1], height_ratios=[1, 10, 1, 10, 1, 10, 1], hspace=0.3, wspace=0.1)
-    ax1 = plt.subplot(gs[:, 1:3], projection='3d')
+    ax1 = plt.subplot(gs[:, 1:3], projection='3d'); ax1.view_init(30, view)
     ax2 = plt.subplot(gs[1, 0])
     ax3 = plt.subplot(gs[3, 0])
     ax4 = plt.subplot(gs[5, 0])
     axb = plt.subplot(gs[1:6, 3])
     
-    ax1.view_init(30, view)
-
     norm = matplotlib.colors.Normalize(vmin=np.nanmin(c2), vmax=np.nanmax(c2))
     surf = ax1.plot_surface(x2, y2, z2, facecolors=cmap(norm(c2)), shade=False, antialiased=False, cstride=1, rstride=1, alpha=0.7, lw=0)
     ax2.pcolor(x2, y2, c2, cmap=cmap, norm=norm, antialiased=False, lw=1, vmin=np.nanmin(c2), vmax=np.nanmax(c2), alpha=0.7)
@@ -583,24 +556,24 @@ class FunctionPlotting:
     
     m = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     m.set_array([])
-    cbar = fig.colorbar(m, cax=axb, extend='both', alpha=0.7)
+    cbar = fig.colorbar(m, cax=axb, extend='both', alpha=0.7, ticks=np.linspace(np.nanmin(c2), np.nanmax(c2), 6))
     cbar.mappable.set_clim([np.nanmin(c2), np.nanmax(c2)])
     axb.set_title(clabel)  
     
-    ax1.scatter(x,y,z, s=s, color='black')
+    ax1.scatter(x1, y1, z1, s=s, color='black')
     ax1.set_xlabel('Irradiance (W/m$^2$)')
     ax1.set_ylabel('Temperature (°C)')
     ax1.set_zlabel(zlabel)
 
-    ax2.scatter(x, y, s=s, color='black')
+    ax2.scatter(x1, y1, s=s, color='black')
     ax2.set_xlabel('Irradiance (W/m$^2$)')
     ax2.set_ylabel('Temperature (°C)')
 
-    ax3.scatter(x, z, s=s, color='black')
+    ax3.scatter(x1, z1, s=s, color='black')
     ax3.set_xlabel('Irradiance (W/m$^2$)')
     ax3.set_ylabel(zlabel)
 
-    ax4.scatter(y, z, s=s, color='black')
+    ax4.scatter(y1, z1, s=s, color='black')
     ax4.set_xlabel('Temperature (°C)')
     ax4.set_ylabel(zlabel)
     ax1.set_title(PVModule)
